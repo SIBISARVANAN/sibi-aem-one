@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workspaceFilter version="1.0">
+    <filter root="/conf/sibi-aem-one" mode="merge"/>
+    <filter root="/content/sibi-aem-one" mode="merge"/>
+    <filter root="/content/dam/sibi-aem-one" mode="merge">
+        <exclude pattern="/content/dam/sibi-aem-one(/.*)?"/>
+        <include pattern="/content/dam/sibi-aem-one/jcr:content(/.*)?"/>
+    </filter>
+    <filter root="/content/dam/sibi-aem-one/asset.jpg" mode="merge"/>
+    <filter root="/content/experience-fragments/sibi-aem-one" mode="merge"/>
+    <filter root="/var/commerce/products/sibi-aem-one-default" mode="merge"/>
+</workspaceFilter>
