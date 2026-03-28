@@ -1,0 +1,5 @@
+{
+  "auth.requirements": [
+    "-/bin/sibi-aem-one/services/getDetails"
+  ]
+}

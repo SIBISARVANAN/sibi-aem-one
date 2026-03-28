@@ -1,0 +1,12 @@
+{
+  "enabled": true,
+
+  "timezone1.id": "America/New_York",
+  "timezone1.cron": "0 0 5 * * ?",
+
+  "timezone2.id": "Europe/London",
+  "timezone2.cron": "0 0 0 * * ?",
+
+  "timezone3.id": "Asia/Kolkata",
+  "timezone3.cron": "0 30 18 * * ?"
+}
