@@ -23,7 +23,7 @@ public class PathRegistrationServlet extends SlingAllMethodsServlet {
 
     private static final Logger LOG = LoggerFactory.getLogger(PathRegistrationServlet.class);
 
-    @Reference(target = "implb")
+    @Reference//(target = "v1")
     GoogleRecaptchaConfigService gcs;
 
     @Override

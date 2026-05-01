@@ -43,7 +43,7 @@ public class ResponseModificationFilter implements Filter {
 
         // modify — inject a script tag before </body>
         String modified = html.replace("</body>",
-                "<script src='/etc/clientlibs/mysite/tracking.js'></script></body>");
+                "<script src='/etc/clientlibs/sibi-aem-one/tracking.js'></script></body>");
 
         // set correct content length after modification
         response.setContentLength(modified.getBytes(response.getCharacterEncoding()).length);

@@ -15,7 +15,7 @@ import java.util.Map;
 @Component(service = ResourceChangeListener.class, immediate = true, property = {
         // which paths to listen on
         ResourceChangeListener.PATHS + "=/content/sibi-aem-one",
-        // listen only to .html resources anywhere under mysite
+        // listen only to .html resources anywhere under sibi-aem-one
         ResourceChangeListener.PATHS + "=glob:/content/sibi-aem-one/**/*.html",
         // listen to anything under /products/ at any depth
         ResourceChangeListener.PATHS + "=glob:/content/sibi-aem-one/**/products/**",

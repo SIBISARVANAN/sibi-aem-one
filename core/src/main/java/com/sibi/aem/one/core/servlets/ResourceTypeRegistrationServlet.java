@@ -26,7 +26,7 @@ public class ResourceTypeRegistrationServlet extends SlingAllMethodsServlet {
     @Reference
     RunModeService rms;
 
-    @Reference(target = "impla")
+    @Reference//(target = "v2")
     GoogleRecaptchaConfigService  gcs;
 
     @Override
