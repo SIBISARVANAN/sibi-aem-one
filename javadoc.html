@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Javadoc — sibi-aem-one</title>
+    <style>
+        :root {
+          --primary: #1a5276;
+          --accent: #2e86c1;
+          --light: #d6eaf8;
+          --bg: #f9fbfd;
+          --code-bg: #1e2330;
+          --code-fg: #e8eaf6;
+          --border: #cce0f0;
+          --text: #1a252f;
+          --muted: #566573;
+          --tag-bg: #eaf4fb;
+          --tag-border: #aed6f1;
+          --sidebar-w: 280px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+        /* Sidebar */
+        #sidebar {
+          width: var(--sidebar-w); min-width: var(--sidebar-w);
+          background: var(--primary); color: #fff;
+          padding: 0; overflow-y: auto; position: sticky; top: 0; height: 100vh;
+        }
+        #sidebar .brand { padding: 20px 18px 14px; border-bottom: 1px solid rgba(255,255,255,.15); }
+        #sidebar .brand h2 { font-size: 15px; font-weight: 700; letter-spacing: .5px; }
+        #sidebar .brand p { font-size: 11px; opacity: .7; margin-top: 4px; }
+        #sidebar ul { list-style: none; padding: 10px 0; }
+        #sidebar ul li a {
+          display: block; padding: 7px 18px; font-size: 12.5px; color: rgba(255,255,255,.82);
+          text-decoration: none; transition: background .15s;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #sidebar ul li a:hover { background: rgba(255,255,255,.12); color: #fff; }
+        #sidebar ul li a.active { background: var(--accent); color: #fff; font-weight: 600; }
+        #sidebar .section-header {
+          padding: 10px 18px 4px; font-size: 10px; text-transform: uppercase;
+          letter-spacing: 1.2px; color: rgba(255,255,255,.45); font-weight: 600;
+        }
+
+        /* Main */
+        #main { flex: 1; padding: 40px 48px; max-width: 1100px; }
+        #main h1 { font-size: 28px; color: var(--primary); margin-bottom: 6px; }
+        #main .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 36px; }
+
+        /* Class sections */
+        .class-section {
+          background: #fff; border: 1px solid var(--border);
+          border-radius: 8px; margin-bottom: 32px; overflow: hidden;
+          scroll-margin-top: 30px;
+        }
+        .class-header {
+          background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+          padding: 16px 22px; display: flex; align-items: center; gap: 12px;
+        }
+        .class-header h2 { color: #fff; font-size: 18px; margin: 0; }
+        .class-header .badge {
+          background: rgba(255,255,255,.2); color: #fff;
+          font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 600;
+          text-transform: uppercase; letter-spacing: .5px;
+        }
+        .class-header .pkg { color: rgba(255,255,255,.65); font-size: 12px; margin-left: auto; font-style: italic; }
+        .class-body { padding: 22px 24px; }
+
+        /* Description */
+        .class-desc { font-size: 14.5px; line-height: 1.75; color: var(--text); margin-bottom: 18px; }
+
+        /* Meta grid */
+        .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .meta-item { background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 6px; padding: 10px 14px; }
+        .meta-item .label { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; color: var(--accent); font-weight: 700; margin-bottom: 4px; }
+        .meta-item .value { font-size: 13px; color: var(--text); word-break: break-all; }
+
+        /* Sub-headings */
+        .class-body h3 { font-size: 14px; color: var(--primary); border-bottom: 2px solid var(--light); padding-bottom: 6px; margin: 22px 0 12px; text-transform: uppercase; letter-spacing: .5px; }
+
+        /* Field / Method tables */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
+        th { background: var(--light); color: var(--primary); font-weight: 700; padding: 8px 12px; text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .5px; }
+        td { padding: 8px 12px; border-bottom: 1px solid #ecf4fb; vertical-align: top; line-height: 1.55; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f4faff; }
+        code { background: var(--code-bg); color: #82d2f5; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas','Courier New',monospace; font-size: 12px; }
+
+        /* Annotation chips */
+        .ann { display: inline-block; background: #fff3e0; border: 1px solid #ffcc80; color: #e65100; font-size: 11px; padding: 1px 7px; border-radius: 20px; margin: 2px 2px 2px 0; font-family: monospace; }
+        .ann.osgi { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
+        .ann.sling { background: #e3f2fd; border-color: #90caf9; color: #1565c0; }
+        .ann.jackson { background: #fce4ec; border-color: #f48fb1; color: #880e4f; }
+
+        /* Note boxes */
+        .note { background: #fff8e1; border-left: 4px solid #fbc02d; border-radius: 4px; padding: 10px 14px; font-size: 13px; margin: 12px 0; line-height: 1.6; }
+        .note.info { background: #e3f2fd; border-color: var(--accent); }
+        .note.warn { background: #fbe9e7; border-color: #e53935; }
+
+        /* TOC page */
+        .toc-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-top: 20px; }
+        .toc-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; text-decoration: none; color: var(--text); transition: box-shadow .2s; }
+        .toc-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); transform: translateY(-1px); }
+        .toc-card .name { font-weight: 700; font-size: 14px; color: var(--primary); }
+        .toc-card .pkg-small { font-size: 11px; color: var(--muted); margin-top: 3px; }
+        .toc-card .type-badge { font-size: 10px; background: var(--light); color: var(--accent); padding: 1px 7px; border-radius: 10px; margin-top: 6px; display: inline-block; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+    <div class="brand">
+        <h2>sibi-aem-one</h2>
+        <p>AEM Project Javadoc</p>
+    </div>
+    <ul>
+        <li><a href="#overview">Overview</a></li>
+        <div class="section-header">Configs</div>
+        <li><a href="#ApiConfig">ApiConfig</a></li>
+        <li><a href="#GoogleRecaptchaConfig">GoogleRecaptchaConfig</a></li>
+        <li><a href="#HeaderConfig">HeaderConfig</a></li>
+        <li><a href="#HeaderNavItemsConfig">HeaderNavItemsConfig</a></li>
+        <li><a href="#AuthorUpdateSchedulerConfig">AuthorUpdateSchedulerConfig</a></li>
+        <li><a href="#AuthorUpdateClusterSchedulerConfig">AuthorUpdateClusterSchedulerConfig</a></li>
+        <li><a href="#AuthorUpdateScheduledJobConfig">AuthorUpdateScheduledJobConfig</a></li>
+        <li><a href="#MultiTimezoneJobConfig">MultiTimezoneJobConfig</a></li>
+        <div class="section-header">Models</div>
+        <li><a href="#Author">Author</a></li>
+        <li><a href="#AuthorImpl">AuthorImpl</a></li>
+        <li><a href="#HelloWorldModel">HelloWorldModel</a></li>
+        <li><a href="#HeaderModel">HeaderModel</a></li>
+        <div class="section-header">Filters</div>
+        <li><a href="#AuthTokenFilter">AuthTokenFilter</a></li>
+        <li><a href="#LoggingFilter">LoggingFilter</a></li>
+        <li><a href="#ModernLoggingFilter">ModernLoggingFilter</a></li>
+        <li><a href="#SecurityHeadersFilter">SecurityHeadersFilter</a></li>
+        <li><a href="#ResponseModificationFilter">ResponseModificationFilter</a></li>
+        <li><a href="#BufferedHttpResponseWrapper">BufferedHttpResponseWrapper</a></li>
+        <li><a href="#GlobalErrorFilter">GlobalErrorFilter</a></li>
+        <div class="section-header">Schedulers</div>
+        <li><a href="#SimpleScheduledTask">SimpleScheduledTask</a></li>
+        <li><a href="#AuthorUpdateScheduler">AuthorUpdateScheduler</a></li>
+        <li><a href="#AuthorUpdateClusterScheduler">AuthorUpdateClusterScheduler</a></li>
+        <div class="section-header">Jobs</div>
+        <li><a href="#AuthorUpdateJobProducer">AuthorUpdateJobProducer</a></li>
+        <li><a href="#AuthorUpdateJobConsumer">AuthorUpdateJobConsumer</a></li>
+        <li><a href="#AuthorUpdateScheduledJobProducer">AuthorUpdateScheduledJobProducer</a></li>
+        <li><a href="#AuthorUpdateScheduledJobConsumer">AuthorUpdateScheduledJobConsumer</a></li>
+        <li><a href="#MultiTimezoneJobProducer">MultiTimezoneJobProducer</a></li>
+        <li><a href="#MultiTimezoneJobConsumer">MultiTimezoneJobConsumer</a></li>
+        <div class="section-header">Listeners/Handlers</div>
+        <li><a href="#SimpleResourceListener">SimpleResourceListener</a></li>
+        <li><a href="#ContentChangeListener">ContentChangeListener</a></li>
+        <li><a href="#ClusterAwareListener">ClusterAwareListener</a></li>
+        <li><a href="#CustomWorkflowTrigger">CustomWorkflowTrigger</a></li>
+        <li><a href="#ReplicationEventHandler">ReplicationEventHandler</a></li>
+        <div class="section-header">Services</div>
+        <li><a href="#RunModeService">RunModeService</a></li>
+        <li><a href="#RunModeServiceImpl">RunModeServiceImpl</a></li>
+        <li><a href="#ExternalApiService">ExternalApiService</a></li>
+        <li><a href="#ExternalApiServiceImpl">ExternalApiServiceImpl</a></li>
+        <li><a href="#GoogleRecaptchaConfigService">GoogleRecaptchaConfigService</a></li>
+        <li><a href="#GoogleRecaptchaConfigServiceImplV1">GoogleRecaptchaConfigServiceImpl (v1)</a></li>
+        <li><a href="#GoogleRecaptchaConfigServiceImplV2">GoogleRecaptchaConfigServiceImpl (v2)</a></li>
+        <div class="section-header">Search</div>
+        <li><a href="#ArticleSearchRequest">ArticleSearchRequest</a></li>
+        <li><a href="#ArticleSearchResult">ArticleSearchResult</a></li>
+        <li><a href="#ArticleSearchService">ArticleSearchService</a></li>
+        <li><a href="#ArticleSearchServiceImpl">ArticleSearchServiceImpl</a></li>
+        <li><a href="#FeaturedArticlePredicateEvaluator">FeaturedArticlePredicateEvaluator</a></li>
+        <li><a href="#EditorialScorePredicateEvaluator">EditorialScorePredicateEvaluator</a></li>
+        <div class="section-header">Servlets</div>
+        <li><a href="#SimpleServlet">SimpleServlet</a></li>
+        <li><a href="#PathRegistrationServlet">PathRegistrationServlet</a></li>
+        <li><a href="#ResourceTypeRegistrationServlet">ResourceTypeRegistrationServlet</a></li>
+        <li><a href="#ArticleSearchServlet">ArticleSearchServlet</a></li>
+        <div class="section-header">Workflows</div>
+        <li><a href="#ProductSyncProcess">ProductSyncProcess</a></li>
+        <li><a href="#AdvancedProductSyncProcess">AdvancedProductSyncProcess</a></li>
+        <li><a href="#ProductDataHarmonizer">ProductDataHarmonizer</a></li>
+        <li><a href="#ContentTypeRouter">ContentTypeRouter</a></li>
+        <li><a href="#LegalApprovalProcess">LegalApprovalProcess</a></li>
+        <li><a href="#LocaleParticipantChooser">LocaleParticipantChooser</a></li>
+    </ul>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div id="main">
+
+    <!-- OVERVIEW -->
+    <section id="overview">
+        <h1>sibi-aem-one — Javadoc</h1>
+        <p class="subtitle">Auto-generated reference documentation for all Java classes in the AEM Maven project.</p>
+        <div class="class-section">
+            <div class="class-header"><h2>Project Overview</h2></div>
+            <div class="class-body">
+                <p class="class-desc">
+                    <strong>sibi-aem-one</strong> is an Adobe Experience Manager (AEM) Maven project that demonstrates
+                    a wide range of AEM development patterns including Sling Models, OSGi Services, Schedulers, Sling Jobs,
+                    Event Listeners, Sling Filters, Sling Servlets, QueryBuilder-based Search, and Workflow Process Steps.
+                </p>
+                <div class="meta-grid">
+                    <div class="meta-item"><div class="label">Base Package</div><div class="value"><code>com.sibi.aem.one.core</code></div></div>
+                    <div class="meta-item"><div class="label">Module</div><div class="value">core (OSGi Bundle)</div></div>
+                    <div class="meta-item"><div class="label">Total Java Files</div><div class="value">60+ source files across 9 packages</div></div>
+                    <div class="meta-item"><div class="label">AEM Version Target</div><div class="value">AEM 6.5 / AEM as a Cloud Service</div></div>
+                </div>
+                <h3>Package Structure</h3>
+                <table>
+                    <tr><th>Package</th><th>Description</th></tr>
+                    <tr><td><code>configs</code></td><td>OSGi &amp; Sling CA configuration annotation interfaces</td></tr>
+                    <tr><td><code>models</code></td><td>Sling Model interfaces and implementations (components)</td></tr>
+                    <tr><td><code>filters</code></td><td>Sling Servlet Filters for request/response interception</td></tr>
+                    <tr><td><code>schedulers</code></td><td>OSGi Scheduler-based periodic tasks</td></tr>
+                    <tr><td><code>jobs</code></td><td>Sling Job producers and consumers</td></tr>
+                    <tr><td><code>listeners</code></td><td>ResourceChangeListeners and OSGi EventHandlers</td></tr>
+                    <tr><td><code>handlers</code></td><td>Replication event handlers</td></tr>
+                    <tr><td><code>services</code></td><td>OSGi service interfaces and implementations</td></tr>
+                    <tr><td><code>services.search</code></td><td>QueryBuilder-based article search service</td></tr>
+                    <tr><td><code>servlets</code></td><td>Sling servlets (path and resource-type based)</td></tr>
+                    <tr><td><code>workflows</code></td><td>AEM Workflow process steps and participant choosers</td></tr>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== CONFIGS ===== -->
+    <section id="ApiConfig" class="class-section">
+        <div class="class-header">
+            <span class="badge">@interface</span>
+            <h2>ApiConfig</h2>
+            <span class="pkg">com.sibi.aem.one.core.configs</span>
+        </div>
+        <div class="class-body">
+            <p class="class-desc">OSGi Metatype configuration interface for the External API Service. Annotated with <code>@ObjectClassDefinition</code>, this annotation type is used by the OSGi framework to generate a configuration form in the Felix Web Console, allowing administrators to set the API endpoint URL, connection timeout, and connection pool size at runtime without redeploying the bundle.</p>
+            <span class="ann osgi">@ObjectClassDefinition</span>
+            <h3>Configuration Properties</h3>
+            <table>
+                <tr><th>Method</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                <tr><td><code>endpoint_url()</code></td><td>String</td><td>https://api.external.com/products/</td><td>Base URL for the external product API. All HTTP calls are made against this root URL.</td></tr>
+                <tr><td><code>connection_timeout()</code></td><td>int</td><td>5000</td><td>Maximum time in milliseconds to wait for a TCP connection to be established or for data to be received.</td></tr>
+                <tr><td><code>max_connections()</code></td><td>int</td><td>50</td><td>Maximum total number of connections maintained in the HTTP connection pool at any time.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="GoogleRecaptchaConfig" class="class-section">
+        <div class="class-header">
+            <span class="badge">@interface</span>
+            <h2>GoogleRecaptchaConfig</h2>
+            <span class="pkg">com.sibi.aem.one.core.configs</span>
+        </div>
+        <div class="class-body">
+            <p class="class-desc">Factory OSGi configuration for Google reCAPTCHA. Supports multiple named instances — one per site — allowing different public/private key pairs for different domains. Each factory configuration instance maps one site to its own keys. This is used with <code>@Designate(factory = true)</code> to allow multiple active configurations of the same component.</p>
+            <span class="ann osgi">@ObjectClassDefinition</span>
+            <h3>Configuration Properties</h3>
+            <table>
+                <tr><th>Method</th><th>Type</th><th>Required</th><th>Description</th></tr>
+                <tr><td><code>siteName()</code></td><td>String</td><td>Yes</td><td>Unique identifier for the website. Used as the lookup key in the service registry map.</td></tr>
+                <tr><td><code>publicKey()</code></td><td>String</td><td>Yes</td><td>Google reCAPTCHA public (site) key displayed to end users in the browser.</td></tr>
+                <tr><td><code>privateKey()</code></td><td>String</td><td>Yes</td><td>Google reCAPTCHA secret (private) key used for server-side token verification.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="HeaderConfig" class="class-section">
+        <div class="class-header">
+            <span class="badge">@interface</span>
+            <h2>HeaderConfig</h2>
+            <span class="pkg">com.sibi.aem.one.core.configs</span>
+        </div>
+        <div class="class-body">
+            <p class="class-desc">Sling Context-Aware Configuration (CAConfig) for the site header component. Annotated with <code>@Configuration</code> from the Sling CA Config API, this allows editors to define header settings per site hierarchy in the JCR under <code>/conf</code>. Values are inherited down the content tree unless overridden.</p>
+            <span class="ann sling">@Configuration (CAConfig)</span>
+            <h3>Properties</h3>
+            <table>
+                <tr><th>Method</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                <tr><td><code>logoPath()</code></td><td>String</td><td>—</td><td>JCR path to the logo image asset used in the site header.</td></tr>
+                <tr><td><code>enableSiteSearch()</code></td><td>boolean</td><td>true</td><td>Flag to show or hide the site search input in the header UI.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="HeaderNavItemsConfig" class="class-section">
+        <div class="class-header">
+            <span class="badge">@interface</span>
+            <h2>HeaderNavItemsConfig</h2>
+            <span class="pkg">com.sibi.aem.one.core.configs</span>
+        </div>
+        <div class="class-body">
+            <p class="class-desc">Collection-type Sling CA Configuration for header navigation menu items. The <code>collection = true</code> flag allows multiple instances of this configuration to be defined (one per nav link) and retrieved as a <code>List</code> in the model. This pattern replaces manual multifield dialogs with CAConfig-managed navigation data.</p>
+            <span class="ann sling">@Configuration(collection=true)</span>
+            <h3>Properties</h3>
+            <table>
+                <tr><th>Method</th><th>Type</th><th>Description</th></tr>
+                <tr><td><code>pageName()</code></td><td>String</td><td>Display label for the navigation link (e.g., "About Us").</td></tr>
+                <tr><td><code>pagePath()</code></td><td>String</td><td>JCR content path the link points to (e.g., <code>/content/mysite/en/about</code>).</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="AuthorUpdateSchedulerConfig" class="class-section">
+        <div class="class-header"><span class="badge">@interface</span><h2>AuthorUpdateSchedulerConfig</h2><span class="pkg">configs</span></div>
+        <div class="class-body">
+            <p class="class-desc">OSGi metatype configuration for the <code>AuthorUpdateScheduler</code> Runnable. Provides a boolean toggle to enable or disable the scheduler, and a cron expression to define its fire schedule. The <code>@ObjectClassDefinition</code> annotation auto-generates a UI panel in the Felix Console for administrators.</p>
+            <h3>Properties</h3>
+            <table>
+                <tr><th>Method</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                <tr><td><code>enabled()</code></td><td>boolean</td><td>false</td><td>Enables or disables the scheduler. The scheduler is off by default to prevent unintended runs in newly deployed environments.</td></tr>
+                <tr><td><code>cronExpression()</code></td><td>String</td><td>""</td><td>Quartz-format cron expression (e.g., <code>0 0 2 * * ?</code> = every day at 2 AM). Must be valid; empty string prevents scheduling.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="AuthorUpdateClusterSchedulerConfig" class="class-section">
+        <div class="class-header"><span class="badge">@interface</span><h2>AuthorUpdateClusterSchedulerConfig</h2><span class="pkg">configs</span></div>
+        <div class="class-body">
+            <p class="class-desc">OSGi configuration for the JCR-lock-based cluster-safe scheduler. Functionally identical to <code>AuthorUpdateSchedulerConfig</code> but used by <code>AuthorUpdateClusterScheduler</code>, which adds JCR locking logic to prevent multiple cluster nodes from running the same job simultaneously.</p>
+            <h3>Properties</h3>
+            <table>
+                <tr><th>Method</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                <tr><td><code>enabled()</code></td><td>boolean</td><td>false</td><td>Enables or disables this cluster-aware scheduler.</td></tr>
+                <tr><td><code>cronExpression()</code></td><td>String</td><td>""</td><td>Quartz cron expression for scheduling execution intervals.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="AuthorUpdateScheduledJobConfig" class="class-section">
+        <div class="class-header"><span class="badge">@interface</span><h2>AuthorUpdateScheduledJobConfig</h2><span class="pkg">configs</span></div>
+        <div class="class-body">
+            <p class="class-desc">Configuration interface for the Sling Job-based scheduled task <code>AuthorUpdateScheduledJobProducer</code>. Unlike the plain Scheduler approach, this config backs a persisted Sling Job that survives AEM server restarts. The <code>configParam</code> property is passed as a job property at scheduling time.</p>
+            <h3>Properties</h3>
+            <table>
+                <tr><th>Method</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                <tr><td><code>isEnabled()</code></td><td>boolean</td><td>false</td><td>Enables or disables the scheduled Sling Job registration.</td></tr>
+                <tr><td><code>configParam()</code></td><td>String</td><td>"default"</td><td>A custom string parameter forwarded as a job property when the job is enqueued. Accessible in the consumer via <code>job.getProperty("configParam")</code>.</td></tr>
+                <tr><td><code>cronExpression()</code></td><td>String</td><td>0 0 2 * * ?</td><td>Quartz cron expression. Defaults to 2 AM every day.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="MultiTimezoneJobConfig" class="class-section">
+        <div class="class-header"><span class="badge">@interface</span><h2>MultiTimezoneJobConfig</h2><span class="pkg">configs</span></div>
+        <div class="class-body">
+            <p class="class-desc">Configuration for the multi-timezone job producer. Supports up to three independent timezone schedules. Each timezone has its own ID (IANA timezone name) and a UTC-based cron expression that corresponds to midnight (or another local time) in that timezone. For example, <code>0 0 5 * * ?</code> in UTC equals midnight EST (UTC-5).</p>
+            <h3>Timezone Configuration Pairs</h3>
+            <table>
+                <tr><th>Timezone</th><th>ID Method</th><th>Default ID</th><th>Cron Method</th><th>Default Cron (UTC)</th></tr>
+                <tr><td>1</td><td><code>timezone1_id()</code></td><td>America/New_York</td><td><code>timezone1_cron()</code></td><td>0 0 5 * * ? (midnight EST)</td></tr>
+                <tr><td>2</td><td><code>timezone2_id()</code></td><td>Europe/London</td><td><code>timezone2_cron()</code></td><td>0 0 0 * * ? (midnight GMT)</td></tr>
+                <tr><td>3</td><td><code>timezone3_id()</code></td><td>Asia/Kolkata</td><td><code>timezone3_cron()</code></td><td>0 30 18 * * ? (midnight IST)</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <!-- ===== MODELS ===== -->
+    <section id="Author" class="class-section">
+        <div class="class-header"><span class="badge">Interface</span><h2>Author</h2><span class="pkg">com.sibi.aem.one.core.models</span></div>
+        <div class="class-body">
+            <p class="class-desc">Public Sling Model interface for the Author component. Defines the contract for author data exposed to HTL templates and JSON exporters. By programming to this interface, components and tests are decoupled from the implementation class <code>AuthorImpl</code>.</p>
+            <h3>Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Return</th><th>Description</th></tr>
+                <tr><td><code>getFirstName()</code></td><td>String</td><td>Returns the author's first name read from the JCR resource properties.</td></tr>
+                <tr><td><code>getLastName()</code></td><td>String</td><td>Returns the author's last name read from the JCR resource properties.</td></tr>
+                <tr><td><code>getTitle()</code></td><td>String</td><td>Returns the author's title/honorific (e.g., Mr, Dr) read from the <code>author:title</code> JCR property.</td></tr>
+                <tr><td><code>getGender()</code></td><td>String</td><td>Returns the author's gender from the value map.</td></tr>
+                <tr><td><code>getEmail()</code></td><td>String</td><td>Returns the author's email address from the value map.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="AuthorImpl" class="class-section">
+        <div class="class-header"><span class="badge">Sling Model</span><h2>AuthorImpl</h2><span class="pkg">com.sibi.aem.one.core.models.impl</span></div>
+        <div class="class-body">
+            <p class="class-desc">Full-featured implementation of the <code>Author</code> interface demonstrating the breadth of Sling Model injection strategies. This class showcases nearly every available injector annotation in a single model: <code>@Inject</code>, <code>@ValueMapValue</code>, <code>@Named</code>, <code>@Default</code>, <code>@RequestAttribute</code>, <code>@ResourcePath</code>, <code>@Self</code>, <code>@ScriptVariable</code>, and <code>@SlingObject</code>. It is also exported as a JSON endpoint via the Jackson exporter.</p>
+            <div>
+                <span class="ann sling">@Model</span>
+                <span class="ann osgi">@Exporter(jackson)</span>
+                <span class="ann jackson">@JsonRootName("AuthorDetails")</span>
+            </div>
+            <div class="meta-grid">
+                <div class="meta-item"><div class="label">Adaptables</div><div class="value">Resource.class, SlingHttpServletRequest.class</div></div>
+                <div class="meta-item"><div class="label">Adapters</div><div class="value">Author.class</div></div>
+                <div class="meta-item"><div class="label">Resource Type</div><div class="value">sibi-aem-one/components/content/author</div></div>
+                <div class="meta-item"><div class="label">JSON Export URL</div><div class="value">&lt;resource&gt;.model.json</div></div>
+            </div>
+            <h3>Field Injections</h3>
+            <table>
+                <tr><th>Field</th><th>Injector</th><th>JCR Property</th><th>Default</th><th>JSON Key</th></tr>
+                <tr><td><code>firstName</code></td><td><code>@Inject</code></td><td>firstName</td><td>Sibi</td><td>firstName</td></tr>
+                <tr><td><code>lastName</code></td><td><code>@Inject</code></td><td>lastName</td><td>Sarvanan</td><td>lastName</td></tr>
+                <tr><td><code>title</code></td><td><code>@Inject @Named("author:title")</code></td><td>author:title</td><td>Mr</td><td>authorTitle</td></tr>
+                <tr><td><code>gender</code></td><td><code>@ValueMapValue</code></td><td>gender</td><td>Male</td><td>gender</td></tr>
+                <tr><td><code>email</code></td><td><code>@ValueMapValue</code></td><td>email</td><td>sibi.sarvanan@yopmail.com</td><td>email</td></tr>
+                <tr><td><code>lastModified</code></td><td><code>@ValueMapValue @Named("jcr:lastModified")</code></td><td>jcr:lastModified</td><td>—</td><td>lastModified</td></tr>
+                <tr><td><code>reqAttr</code></td><td><code>@RequestAttribute</code></td><td>request attr "reqAttr"</td><td>—</td><td>—</td></tr>
+                <tr><td><code>anyPageResource</code></td><td><code>@ResourcePath</code></td><td>Fixed path injection</td><td>—</td><td>—</td></tr>
+                <tr><td><code>resource</code></td><td><code>@Self</code></td><td>Current resource</td><td>—</td><td>—</td></tr>
+                <tr><td><code>request</code></td><td><code>@Self</code></td><td>Current SlingRequest</td><td>—</td><td>—</td></tr>
+                <tr><td><code>resourceResolver</code></td><td><code>@ScriptVariable</code></td><td>Script binding</td><td>—</td><td>—</td></tr>
+                <tr><td><code>currentPage</code></td><td><code>@ScriptVariable</code></td><td>Script binding</td><td>—</td><td>—</td></tr>
+                <tr><td><code>wcmMode</code></td><td><code>@ScriptVariable</code></td><td>Script binding</td><td>—</td><td>—</td></tr>
+                <tr><td><code>resourceResolverFactory</code></td><td><code>@SlingObject</code></td><td>OSGi service</td><td>—</td><td>—</td></tr>
+                <tr><td><code>response</code></td><td><code>@SlingObject</code></td><td>SlingResponse</td><td>—</td><td>—</td></tr>
+            </table>
+            <div class="note info">The <code>@PostConstruct</code> method <code>init()</code> runs once after all field injections complete. Place any post-injection logic here (e.g. derived fields, null-checks).</div>
+        </div>
+    </section>
+
+    <section id="HelloWorldModel" class="class-section">
+        <div class="class-header"><span class="badge">Sling Model</span><h2>HelloWorldModel</h2><span class="pkg">com.sibi.aem.one.core.models</span></div>
+        <div class="class-body">
+            <p class="class-desc">A simple Sling Model demonstrating basic injection and <code>@PostConstruct</code> usage. Adapts from a <code>Resource</code> and builds a greeting message that includes the resource type and the path of the containing page. Demonstrates using <code>PageManager</code> via <code>ResourceResolver.adaptTo()</code> and Java Optional for null-safe access.</p>
+            <span class="ann sling">@Model(adaptables=Resource.class)</span>
+            <h3>Injected Fields</h3>
+            <table>
+                <tr><th>Field</th><th>Injector</th><th>Description</th></tr>
+                <tr><td><code>resourceType</code></td><td><code>@ValueMapValue(OPTIONAL)</code></td><td>Reads <code>sling:resourceType</code> from the node. Defaults to "No resourceType" if absent.</td></tr>
+                <tr><td><code>currentResource</code></td><td><code>@SlingObject</code></td><td>The JCR resource being adapted.</td></tr>
+                <tr><td><code>resourceResolver</code></td><td><code>@SlingObject</code></td><td>The session-bound resource resolver.</td></tr>
+            </table>
+            <h3>Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Description</th></tr>
+                <tr><td><code>init()</code></td><td>@PostConstruct — resolves the containing page path via PageManager and builds the message string combining resource type and page path.</td></tr>
+                <tr><td><code>getMessage()</code></td><td>Returns the constructed message string for rendering in HTL.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="HeaderModel" class="class-section">
+        <div class="class-header"><span class="badge">Sling Model</span><h2>HeaderModel</h2><span class="pkg">com.sibi.aem.one.core.models</span></div>
+        <div class="class-body">
+            <p class="class-desc">Sling Model for the site header component that reads its configuration from Sling Context-Aware Configuration (CAConfig). On <code>@PostConstruct</code>, it adapts the request to <code>ConfigurationBuilder</code>, fetches a single <code>HeaderConfig</code> and a collection of <code>HeaderNavItemsConfig</code> items. This allows the header to vary per site without changing Java code.</p>
+            <span class="ann sling">@Model(adaptables={SlingHttpServletRequest.class, Resource.class})</span>
+            <h3>Fields &amp; Methods</h3>
+            <table>
+                <tr><th>Member</th><th>Type</th><th>Description</th></tr>
+                <tr><td><code>request</code></td><td>@Self injection</td><td>The current Sling request, used to adapt to <code>ConfigurationBuilder</code>.</td></tr>
+                <tr><td><code>logoPath</code></td><td>String</td><td>Logo image DAM path read from <code>HeaderConfig</code>.</td></tr>
+                <tr><td><code>enableSiteSearch</code></td><td>boolean</td><td>Whether to display site search, from <code>HeaderConfig</code>.</td></tr>
+                <tr><td><code>navItems</code></td><td>List&lt;HeaderNavItemsConfig&gt;</td><td>Ordered list of navigation links from CAConfig collection.</td></tr>
+                <tr><td><code>init()</code></td><td>@PostConstruct</td><td>Fetches CAConfig values via <code>ConfigurationBuilder.as()</code> and <code>asCollection()</code>. All fields remain null/empty if CAConfig is unavailable.</td></tr>
+                <tr><td><code>getNavItems()</code></td><td>List (unmodifiable)</td><td>Returns a defensive copy of nav items. The list is wrapped in <code>Collections.unmodifiableList()</code> to prevent external mutation.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <!-- ===== FILTERS ===== -->
+    <section id="AuthTokenFilter" class="class-section">
+        <div class="class-header"><span class="badge">Sling Filter</span><h2>AuthTokenFilter</h2><span class="pkg">com.sibi.aem.one.core.filters</span></div>
+        <div class="class-body">
+            <p class="class-desc">A security filter that guards paths under <code>/content/sibi-aem-one/secure/</code> by validating an <code>X-Auth-Token</code> request header. If the token is missing or invalid, the filter terminates the request by sending HTTP 401 without calling <code>chain.doFilter()</code>. Supports GET and POST methods and runs at service ranking -200 (higher priority than most application filters).</p>
+            <div><span class="ann sling">@SlingServletFilter(scope=REQUEST)</span><span class="ann osgi">service.ranking=-200</span></div>
+            <div class="meta-grid">
+                <div class="meta-item"><div class="label">Scope</div><div class="value">REQUEST</div></div>
+                <div class="meta-item"><div class="label">Path Pattern</div><div class="value">/content/sibi-aem-one/secure/.*</div></div>
+                <div class="meta-item"><div class="label">HTTP Methods</div><div class="value">GET, POST</div></div>
+                <div class="meta-item"><div class="label">Service Ranking</div><div class="value">-200 (runs earlier than most filters)</div></div>
+            </div>
+            <h3>Key Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Description</th></tr>
+                <tr><td><code>doFilter()</code></td><td>Extracts <code>X-Auth-Token</code> header. If null or fails validation, sends HTTP 401 and returns without calling the filter chain. If valid, passes the request through via <code>chain.doFilter()</code>.</td></tr>
+                <tr><td><code>isValid(String token)</code></td><td>Private validation helper. Currently returns <code>true</code> (stub). In production, this should call an injected <code>TokenValidationService</code>.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="LoggingFilter" class="class-section">
+        <div class="class-header"><span class="badge">Sling Filter</span><h2>LoggingFilter</h2><span class="pkg">filters</span></div>
+        <div class="class-body">
+            <p class="class-desc">Legacy-style REQUEST scope filter that logs the resource path and selector string of every incoming Sling request. Uses the <em>old approach</em> of registering a filter via string-based <code>@Component</code> properties (<code>SLING_FILTER_SCOPE</code>), and is ranked -700 in the filter chain. This class contrasts with <code>ModernLoggingFilter</code> which uses the newer <code>@SlingServletFilter</code> annotation.</p>
+            <div><span class="ann osgi">@Component(FILTER_SCOPE_REQUEST)</span><span class="ann osgi">@ServiceRanking(-700)</span></div>
+            <h3>Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Description</th></tr>
+                <tr><td><code>doFilter()</code></td><td>Casts request to <code>SlingHttpServletRequest</code>, logs resource path and selector at DEBUG level, then calls <code>filterChain.doFilter()</code> to pass the request along.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="ModernLoggingFilter" class="class-section">
+        <div class="class-header"><span class="badge">Sling Filter</span><h2>ModernLoggingFilter</h2><span class="pkg">filters</span></div>
+        <div class="class-body">
+            <p class="class-desc">Modern REQUEST scope filter using the type-safe <code>@SlingServletFilter</code> annotation. Demonstrates all available filter narrowing properties: path pattern, resource type, selectors, extensions, and HTTP methods. Pre-processing (before <code>chain.doFilter()</code>) logs the incoming request path and selector. Post-processing (after) logs the response status code.</p>
+            <div><span class="ann sling">@SlingServletFilter(scope=REQUEST)</span><span class="ann osgi">service.ranking=-800</span></div>
+            <div class="meta-grid">
+                <div class="meta-item"><div class="label">Path Pattern</div><div class="value">/content/sibi-aem-one/.*</div></div>
+                <div class="meta-item"><div class="label">Resource Types</div><div class="value">sibi-aem-one/components/page</div></div>
+                <div class="meta-item"><div class="label">Selectors</div><div class="value">print, mobile</div></div>
+                <div class="meta-item"><div class="label">Extensions</div><div class="value">html, json</div></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="SecurityHeadersFilter" class="class-section">
+        <div class="class-header"><span class="badge">Sling Filter</span><h2>SecurityHeadersFilter</h2><span class="pkg">filters</span></div>
+        <div class="class-body">
+            <p class="class-desc">Post-processing filter that injects HTTP security headers into every GET/HEAD response under <code>/content/</code>. Headers are added <em>after</em> <code>chain.doFilter()</code> so they apply to the rendered response. Important caveat: these headers only appear on responses AEM renders directly — cached responses served by Dispatcher or CDN bypass this filter entirely.</p>
+            <h3>Response Headers Set</h3>
+            <table>
+                <tr><th>Header</th><th>Value</th><th>Purpose</th></tr>
+                <tr><td>X-Frame-Options</td><td>SAMEORIGIN</td><td>Prevents clickjacking by only allowing the page to be embedded in frames from the same origin.</td></tr>
+                <tr><td>X-Content-Type-Options</td><td>nosniff</td><td>Prevents browsers from MIME-sniffing the response type.</td></tr>
+                <tr><td>X-XSS-Protection</td><td>1; mode=block</td><td>Enables legacy browser XSS filter and blocks the page on detection.</td></tr>
+                <tr><td>Referrer-Policy</td><td>strict-origin-when-cross-origin</td><td>Controls how much referrer information is sent with cross-origin requests.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="ResponseModificationFilter" class="class-section">
+        <div class="class-header"><span class="badge">Sling Filter</span><h2>ResponseModificationFilter</h2><span class="pkg">filters</span></div>
+        <div class="class-body">
+            <p class="class-desc">Demonstrates response body modification using the <code>BufferedHttpResponseWrapper</code>. Before calling <code>chain.doFilter()</code>, wraps the response to intercept its output. After the servlet/component renders, reads the buffered HTML and injects a tracking script tag before <code>&lt;/body&gt;</code>. Updates the <code>Content-Length</code> header to reflect the modified size before writing to the real response.</p>
+            <div class="note warn"><strong>Performance note:</strong> Response wrapping holds the entire page in memory. Only use on low-traffic, non-cacheable paths. Never use on high-traffic paths without profiling first.</div>
+            <h3>doFilter() Flow</h3>
+            <table>
+                <tr><th>Step</th><th>Action</th></tr>
+                <tr><td>1</td><td>Wraps the response in <code>BufferedHttpResponseWrapper</code> to intercept output.</td></tr>
+                <tr><td>2</td><td>Calls <code>chain.doFilter(request, wrappedResponse)</code> — servlet writes to the buffer.</td></tr>
+                <tr><td>3</td><td>Reads the buffered HTML string via <code>wrappedResponse.getBufferedContent()</code>.</td></tr>
+                <tr><td>4</td><td>Replaces <code>&lt;/body&gt;</code> with a tracking script tag + <code>&lt;/body&gt;</code>.</td></tr>
+                <tr><td>5</td><td>Sets correct <code>Content-Length</code> and writes modified HTML to the real response.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="BufferedHttpResponseWrapper" class="class-section">
+        <div class="class-header"><span class="badge">Helper Class</span><h2>BufferedHttpResponseWrapper</h2><span class="pkg">filters</span></div>
+        <div class="class-body">
+            <p class="class-desc">An <code>HttpServletResponseWrapper</code> that captures all output written to the response into an in-memory <code>ByteArrayOutputStream</code>. Both the text-based <code>getWriter()</code> path and the binary <code>getOutputStream()</code> path are intercepted. Used by <code>ResponseModificationFilter</code> to buffer the rendered HTML before modifying it.</p>
+            <h3>Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Description</th></tr>
+                <tr><td><code>getWriter()</code></td><td>Overrides the default writer to return a <code>PrintWriter</code> backed by the internal <code>ByteArrayOutputStream</code>, capturing all text output.</td></tr>
+                <tr><td><code>getOutputStream()</code></td><td>Lazily creates and returns a <code>ServletOutputStream</code> that delegates all writes to the same internal buffer, capturing binary output.</td></tr>
+                <tr><td><code>flushBuffer()</code></td><td>Flushes both the writer and output stream before delegating to the wrapped response's <code>flushBuffer()</code>.</td></tr>
+                <tr><td><code>getBufferedContent()</code></td><td>Flushes the writer and returns the entire buffered content as a String using the response's character encoding. Called after <code>chain.doFilter()</code> returns.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="GlobalErrorFilter" class="class-section">
+        <div class="class-header"><span class="badge">Sling Filter</span><h2>GlobalErrorFilter</h2><span class="pkg">filters</span></div>
+        <div class="class-body">
+            <p class="class-desc">An ERROR scope filter that catches unhandled exceptions that propagate out of servlets or components during page rendering. Registered for the ERROR scope, it fires when <code>HttpServletResponse.sendError()</code> is called or when an uncaught <code>Throwable</code> escapes the normal request lifecycle. Logs the error with the resource path and can be extended to forward to a custom error page.</p>
+            <div><span class="ann sling">@SlingServletFilter(scope=ERROR)</span></div>
+            <div class="meta-grid">
+                <div class="meta-item"><div class="label">Scope</div><div class="value">ERROR</div></div>
+                <div class="meta-item"><div class="label">Path Pattern</div><div class="value">/content/sibi-aem-one/.*</div></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SCHEDULERS ===== -->
+    <section id="SimpleScheduledTask" class="class-section">
+        <div class="class-header"><span class="badge">Scheduler</span><h2>SimpleScheduledTask</h2><span class="pkg">com.sibi.aem.one.core.schedulers</span></div>
+        <div class="class-body">
+            <p class="class-desc">A basic cron-based scheduler demonstrating the Sling Scheduler pattern with an inline <code>@interface Config</code>. Implements <code>Runnable</code> and is registered as an OSGi component. The scheduler expression and concurrency flag are configurable via the Felix Console. The <code>@Activate</code> callback reads the config and stores the custom parameter for use in <code>run()</code>.</p>
+            <div><span class="ann osgi">@Component(service=Runnable.class)</span><span class="ann osgi">@Designate</span></div>
+            <h3>Config Inner Interface</h3>
+            <table>
+                <tr><th>Property</th><th>Default</th><th>Description</th></tr>
+                <tr><td><code>scheduler_expression()</code></td><td>*/30 * * * * ?</td><td>Cron expression — runs every 30 seconds by default.</td></tr>
+                <tr><td><code>scheduler_concurrent()</code></td><td>false</td><td>Prevents concurrent execution of the same task.</td></tr>
+                <tr><td><code>myParameter()</code></td><td>""</td><td>A sample configurable string available in <code>run()</code>.</td></tr>
+            </table>
+            <h3>Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Description</th></tr>
+                <tr><td><code>activate(Config)</code></td><td>Reads <code>myParameter</code> from the injected config object and stores it as a field for use in <code>run()</code>.</td></tr>
+                <tr><td><code>run()</code></td><td>Task body — currently logs a debug message with the custom parameter. Replace with business logic.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="AuthorUpdateScheduler" class="class-section">
+        <div class="class-header"><span class="badge">Scheduler</span><h2>AuthorUpdateScheduler</h2><span class="pkg">schedulers</span></div>
+        <div class="class-body">
+            <p class="class-desc">Production-grade scheduler using the injected <code>Scheduler</code> service with <code>ScheduleOptions</code>. Unlike <code>SimpleScheduledTask</code>, this scheduler programmatically registers and unregisters itself using a named schedule, which allows it to be cleanly removed on <code>@Deactivate</code> without leaving orphan tasks. Requires <code>ConfigurationPolicy.REQUIRE</code> — it will not start without an explicit OSGi config.</p>
+            <div><span class="ann osgi">@Component(service=Runnable.class, configurationPolicy=REQUIRE)</span></div>
+            <h3>Lifecycle Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Lifecycle</th><th>Description</th></tr>
+                <tr><td><code>activate(AuthorUpdateSchedulerConfig)</code></td><td>@Activate</td><td>Reads enabled flag and cron expression. If enabled, creates <code>ScheduleOptions</code> via <code>scheduler.EXPR(cron)</code>, sets <code>canRunConcurrently(false)</code>, and registers the task.</td></tr>
+                <tr><td><code>deactivate()</code></td><td>@Deactivate</td><td>Calls <code>scheduler.unschedule(schedulerName)</code> to cleanly remove the task from the scheduler registry.</td></tr>
+                <tr><td><code>run()</code></td><td>Runnable</td><td>Task body called by the Sling Scheduler when the cron fires. Currently logs a debug message.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="AuthorUpdateClusterScheduler" class="class-section">
+        <div class="class-header"><span class="badge">Scheduler</span><h2>AuthorUpdateClusterScheduler</h2><span class="pkg">schedulers</span></div>
+        <div class="class-body">
+            <p class="class-desc">Cluster-safe version of <code>AuthorUpdateScheduler</code> that uses JVM-level and JCR-level locking to ensure only one AEM instance in a shared-repository cluster runs the job at a time. Combines a <code>ReentrantLock</code> (JVM guard) with JCR <code>LockManager</code> (cluster guard). Useful in MongoMK/TarMK-shared setups where multiple author instances share a single Oak repository.</p>
+            <div class="note"><strong>Cluster safety:</strong> Two levels of locking — <code>ReentrantLock</code> prevents two threads on the same JVM, and JCR <code>LockManager</code> prevents two JVMs in the same cluster from running simultaneously.</div>
+            <h3>Locking Strategy</h3>
+            <table>
+                <tr><th>Lock Type</th><th>Scope</th><th>Implementation</th></tr>
+                <tr><td>JVM Lock</td><td>Single AEM instance</td><td><code>ReentrantLock.tryLock()</code> — non-blocking; skips execution if already locked.</td></tr>
+                <tr><td>JCR Lock</td><td>Entire cluster</td><td><code>LockManager.lock(LOCK_PATH, false, true, 300, null)</code> — creates a session-scoped, 5-minute lock on a dedicated JCR node.</td></tr>
+            </table>
+            <h3>Key Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Description</th></tr>
+                <tr><td><code>run()</code></td><td>First attempts JVM lock. If acquired, attempts JCR cluster lock. If both succeed, executes business logic. Both locks are released in finally blocks.</td></tr>
+                <tr><td><code>getClusterLock(ResourceResolver)</code></td><td>Creates the lock node path if it doesn't exist, checks if already locked, then acquires a JCR lock with a 300-second timeout.</td></tr>
+                <tr><td><code>releaseClusterLock(ResourceResolver)</code></td><td>Checks if the lock still exists and unlocks it via <code>LockManager.unlock()</code>.</td></tr>
+                <tr><td><code>getResourceResolver()</code></td><td>Opens a service-user-based resource resolver using subservice "scheduler".</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <!-- ===== JOBS ===== -->
+    <section id="AuthorUpdateJobProducer" class="class-section">
+        <div class="class-header"><span class="badge">Job Producer</span><h2>AuthorUpdateJobProducer</h2><span class="pkg">com.sibi.aem.one.core.jobs</span></div>
+        <div class="class-body">
+            <p class="class-desc">OSGi component that enqueues an ad-hoc Sling Job on the <code>sibi-aem-one.author.update</code> topic. Other services or event handlers call <code>triggerJob(payload)</code> to fire a job with a path property. The job is then processed by <code>AuthorUpdateJobConsumer</code> asynchronously, decoupling the triggering logic from the processing logic.</p>
+            <h3>Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Description</th></tr>
+                <tr><td><code>triggerJob(String payload)</code></td><td>Builds a <code>Map&lt;String, Object&gt;</code> with the <code>payloadPath</code> key and calls <code>jobManager.addJob(JOB_TOPIC, props)</code> to enqueue the job.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="AuthorUpdateJobConsumer" class="class-section">
+        <div class="class-header"><span class="badge">Job Consumer</span><h2>AuthorUpdateJobConsumer</h2><span class="pkg">jobs</span></div>
+        <div class="class-body">
+            <p class="class-desc">Sling JobConsumer that processes jobs from the <code>sibi-aem-one.author.update</code> topic. The <code>PROPERTY_TOPICS</code> property routes only jobs with this exact topic to this consumer. Returns <code>JobResult.OK</code> on success or <code>JobResult.FAILED</code> on exception, which causes the Sling Job framework to retry automatically with exponential backoff.</p>
+            <h3>Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Return</th><th>Description</th></tr>
+                <tr><td><code>process(Job job)</code></td><td>JobResult</td><td>Reads <code>payloadPath</code> from job properties, logs it, performs business logic, and returns OK. On any exception, logs the error and returns FAILED to trigger a retry.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="AuthorUpdateScheduledJobProducer" class="class-section">
+        <div class="class-header"><span class="badge">Scheduled Job Producer</span><h2>AuthorUpdateScheduledJobProducer</h2><span class="pkg">jobs</span></div>
+        <div class="class-body">
+            <p class="class-desc">Registers a persistent, scheduled Sling Job that runs on a cron expression. Unlike a plain <code>Scheduler</code> task, this job is written to <code>/var/eventing/scheduled-jobs</code> in the JCR and survives server restarts. On activation, checks for duplicate registrations via <code>getScheduledJobs()</code> before calling <code>.add()</code>. On deactivation, unschedules all matching jobs to avoid orphans.</p>
+            <h3>Lifecycle</h3>
+            <table>
+                <tr><th>Method</th><th>Lifecycle</th><th>Description</th></tr>
+                <tr><td><code>activate()</code></td><td>@Activate</td><td>Stores config and calls <code>scheduleJob()</code>.</td></tr>
+                <tr><td><code>modified()</code></td><td>@Modified</td><td>On config change: unschedules the current job and re-registers with new settings.</td></tr>
+                <tr><td><code>deactivate()</code></td><td>@Deactivate</td><td>Calls <code>unscheduleJob()</code> to clean up all registered job instances.</td></tr>
+                <tr><td><code>scheduleJob()</code></td><td>Private</td><td>Skips if disabled. Checks for existing jobs via <code>getScheduledJobs()</code>. Builds job properties and schedules via <code>JobBuilder.ScheduleBuilder.cron().add()</code>.</td></tr>
+                <tr><td><code>unscheduleJob()</code></td><td>Private</td><td>Queries for matching scheduled jobs and calls <code>scheduledJobInfo.unschedule()</code> on each.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="AuthorUpdateScheduledJobConsumer" class="class-section">
+        <div class="class-header"><span class="badge">Job Consumer</span><h2>AuthorUpdateScheduledJobConsumer</h2><span class="pkg">jobs</span></div>
+        <div class="class-body">
+            <p class="class-desc">Consumer for scheduled Sling Jobs on the <code>sibi-aem-one.author.update.scheduled</code> topic. Reads the <code>configParam</code> property injected by the producer and delegates to <code>doWork()</code>. Returns <code>JobResult.FAILED</code> on exception, causing Sling to retry. The <code>JOB_TOPIC</code> constant is shared with the producer to avoid string duplication.</p>
+            <h3>Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Description</th></tr>
+                <tr><td><code>process(Job)</code></td><td>Retrieves <code>configParam</code> from the job, logs progress, calls <code>doWork()</code>, and returns <code>OK</code>. Returns <code>FAILED</code> and logs on exception.</td></tr>
+                <tr><td><code>doWork(String configParam)</code></td><td>Private stub for the actual business logic. Receives the config parameter forwarded from the producer.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="MultiTimezoneJobProducer" class="class-section">
+        <div class="class-header"><span class="badge">Scheduled Job Producer</span><h2>MultiTimezoneJobProducer</h2><span class="pkg">jobs</span></div>
+        <div class="class-body">
+            <p class="class-desc">Registers three independent scheduled Sling Jobs — one per timezone — each with its own UTC-based cron expression. Uses a <code>schedulerName</code> job property as a deduplication key when checking <code>getScheduledJobs()</code>. This design allows midnight-equivalent execution in three different time zones (EST, London, IST) from a single OSGi component.</p>
+            <h3>Scheduler Name Constants</h3>
+            <table>
+                <tr><th>Constant</th><th>Value</th><th>Timezone</th></tr>
+                <tr><td><code>TZ1_SCHEDULER_NAME</code></td><td>multitz.job.tz1</td><td>America/New_York</td></tr>
+                <tr><td><code>TZ2_SCHEDULER_NAME</code></td><td>multitz.job.tz2</td><td>Europe/London</td></tr>
+                <tr><td><code>TZ3_SCHEDULER_NAME</code></td><td>multitz.job.tz3</td><td>Asia/Kolkata</td></tr>
+            </table>
+            <h3>Key Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Description</th></tr>
+                <tr><td><code>scheduleAllJobs()</code></td><td>Calls <code>scheduleTimezoneJob()</code> three times, once per timezone config pair.</td></tr>
+                <tr><td><code>scheduleTimezoneJob(name, tz, cron)</code></td><td>Checks for duplicate using <code>schedulerName</code> in existing job properties. If not found, creates and schedules a job with the timezone ID and scheduler name as properties.</td></tr>
+                <tr><td><code>unscheduleAllJobs()</code></td><td>Retrieves all jobs on the topic and unschedules each one.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="MultiTimezoneJobConsumer" class="class-section">
+        <div class="class-header"><span class="badge">Job Consumer</span><h2>MultiTimezoneJobConsumer</h2><span class="pkg">jobs</span></div>
+        <div class="class-body">
+            <p class="class-desc">Processes multi-timezone Sling Jobs by reading the <code>timezoneId</code> job property and calling <code>doWork()</code>. Uses <code>ZonedDateTime.now(ZoneId.of(timezoneId))</code> to log the local time for the triggered timezone, making it easy to verify job execution is at the expected local time in each region.</p>
+            <h3>Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Description</th></tr>
+                <tr><td><code>process(Job)</code></td><td>Reads <code>timezoneId</code> property, logs local ZonedDateTime, calls <code>doWork()</code>, and returns <code>OK</code>. Returns <code>FAILED</code> on exception.</td></tr>
+                <tr><td><code>doWork(String timezoneId)</code></td><td>Stub for region-specific logic: e.g., send locale emails, trigger regional replication, sync data for that market.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <!-- ===== LISTENERS ===== -->
+    <section id="SimpleResourceListener" class="class-section">
+        <div class="class-header"><span class="badge">Resource Listener</span><h2>SimpleResourceListener</h2><span class="pkg">com.sibi.aem.one.core.listeners</span></div>
+        <div class="class-body">
+            <p class="class-desc">A minimal <code>ResourceChangeListener</code> that logs all resource changes it receives. No path or change-type filter is applied, so it receives all changes across the entire repository (suitable for learning/debugging, not production). Demonstrates the basic listener contract: implement <code>onChange(List&lt;ResourceChange&gt;)</code> and iterate the change list.</p>
+            <h3>Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Description</th></tr>
+                <tr><td><code>onChange(List&lt;ResourceChange&gt;)</code></td><td>Iterates all changes and logs each one's type, path, and <code>isExternal()</code> flag at DEBUG level.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="ContentChangeListener" class="class-section">
+        <div class="class-header"><span class="badge">Resource Listener</span><h2>ContentChangeListener</h2><span class="pkg">listeners</span></div>
+        <div class="class-body">
+            <p class="class-desc">Production-style <code>ResourceChangeListener</code> with multiple path patterns demonstrating glob path registration. Listens for ADDED, CHANGED, and REMOVED events across several path patterns under <code>/content/sibi-aem-one</code>. For each change that is not a <code>jcr:content</code> sub-node, enqueues a Sling Job with the change path and type, decoupling the event thread from heavy processing work.</p>
+            <div class="meta-grid">
+                <div class="meta-item"><div class="label">Paths Watched</div><div class="value">/content/sibi-aem-one, glob:**/*.html, glob:**/products/**, glob:**/jcr:content</div></div>
+                <div class="meta-item"><div class="label">Change Types</div><div class="value">ADDED, CHANGED, REMOVED</div></div>
+                <div class="meta-item"><div class="label">Job Topic</div><div class="value">sibi-aem-one.contentchangelistener.job</div></div>
+                <div class="meta-item"><div class="label">Filter</div><div class="value">Skips paths containing "jcr:content" (fires only for page-level nodes)</div></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="ClusterAwareListener" class="class-section">
+        <div class="class-header"><span class="badge">Cluster Listener</span><h2>ClusterAwareListener</h2><span class="pkg">listeners</span></div>
+        <div class="class-body">
+            <p class="class-desc">Implements both <code>ResourceChangeListener</code> and <code>ExternalResourceChangeListener</code>, making it aware of changes from <em>both</em> the local node and remote cluster nodes. Uses <code>change.isExternal()</code> to route events to different job topics: internal changes get a local job and external (cross-cluster) changes get an external job, preventing duplicate job execution.</p>
+            <div class="note info"><strong>Key pattern:</strong> Always check <code>isExternal()</code> before firing a job. Without this check, a 2-node author cluster would fire 2 identical jobs for every change.</div>
+            <h3>Change Filtering Chain in onChange()</h3>
+            <table>
+                <tr><th>Filter Step</th><th>Logic</th></tr>
+                <tr><td>1. Noise filter</td><td>Skips changes whose path contains <code>jcr:content/</code> (sub-property noise).</td></tr>
+                <tr><td>2. Page-level filter</td><td>Keeps only <code>jcr:content</code> nodes or non-JCR paths.</td></tr>
+                <tr><td>3. Type filter</td><td>Ignores REMOVED events (handles only ADDED and CHANGED).</td></tr>
+                <tr><td>4. Local/external branch</td><td>Routes to <code>.job.internal</code> or <code>.job.external</code> topic based on <code>isExternal()</code>.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="CustomWorkflowTrigger" class="class-section">
+        <div class="class-header"><span class="badge">Resource Listener</span><h2>CustomWorkflowTrigger</h2><span class="pkg">listeners</span></div>
+        <div class="class-body">
+            <p class="class-desc">A <code>ResourceChangeListener</code> on the DAM path that programmatically starts an AEM Workflow when a custom condition is met. Demonstrates the pattern of using a <code>ResourceResolverFactory</code> service user session (subservice: <code>workflow-service</code>) to obtain a <code>WorkflowSession</code>, load a workflow model from the JCR, and start the workflow with the changed resource path as the payload.</p>
+            <h3>onChange() Flow</h3>
+            <table>
+                <tr><th>Step</th><th>Description</th></tr>
+                <tr><td>1</td><td>Opens a service-user ResourceResolver via <code>resourceResolverFactory.getServiceResourceResolver()</code>.</td></tr>
+                <tr><td>2</td><td>Calls <code>shouldTriggerWorkflow()</code> — custom business logic decides whether to proceed.</td></tr>
+                <tr><td>3</td><td>Adapts resolver to <code>WorkflowSession</code> and loads the model from <code>/var/workflow/models/my-custom-model</code>.</td></tr>
+                <tr><td>4</td><td>Creates <code>WorkflowData</code> with type <code>JCR_PATH</code> and the changed resource path as payload.</td></tr>
+                <tr><td>5</td><td>Calls <code>wfSession.startWorkflow(model, data)</code> to launch the workflow instance.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="ReplicationEventHandler" class="class-section">
+        <div class="class-header"><span class="badge">Event Handler</span><h2>ReplicationEventHandler</h2><span class="pkg">com.sibi.aem.one.core.handlers</span></div>
+        <div class="class-body">
+            <p class="class-desc">OSGi <code>EventHandler</code> that listens on the <code>ReplicationAction.EVENT_TOPIC</code> to react when AEM pages are activated or deactivated (published or unpublished). Extracts the action type and path from the event, and when the action is ACTIVATE, enqueues a Sling Job for further processing — demonstrating the golden rule of "handle event fast, do work in a job".</p>
+            <div><span class="ann osgi">@Component(service=EventHandler.class, immediate=true)</span></div>
+            <div class="meta-grid">
+                <div class="meta-item"><div class="label">Event Topic</div><div class="value">ReplicationAction.EVENT_TOPIC</div></div>
+                <div class="meta-item"><div class="label">Job Topic Fired</div><div class="value">sibi-aem-one.replicationeventhandler.job</div></div>
+                <div class="meta-item"><div class="label">Trigger Condition</div><div class="value">ReplicationActionType.ACTIVATE only</div></div>
+                <div class="meta-item"><div class="label">Job Property</div><div class="value">path = activated page/asset path</div></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SERVICES ===== -->
+    <section id="RunModeService" class="class-section">
+        <div class="class-header"><span class="badge">Interface</span><h2>RunModeService</h2><span class="pkg">com.sibi.aem.one.core.services</span></div>
+        <div class="class-body">
+            <p class="class-desc">OSGi service interface for detecting the current AEM run modes. Provides boolean helper methods for common environment types, abstracting away the direct use of <code>SlingSettingsService</code> in consuming components. By injecting this interface instead of <code>SlingSettingsService</code> directly, code becomes easier to mock in unit tests.</p>
+            <h3>Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Description</th></tr>
+                <tr><td><code>isAuthor()</code></td><td>Returns true if the "author" run mode is active.</td></tr>
+                <tr><td><code>isPublish()</code></td><td>Returns true if the "publish" run mode is active.</td></tr>
+                <tr><td><code>isDev()</code></td><td>Returns true if the "dev" run mode is active.</td></tr>
+                <tr><td><code>isQa()</code></td><td>Returns true if the "qa" run mode is active.</td></tr>
+                <tr><td><code>isStage()</code></td><td>Returns true if the "stage" run mode is active.</td></tr>
+                <tr><td><code>isProd()</code></td><td>Returns true if the "prod" run mode is active.</td></tr>
+                <tr><td><code>getAllRunModes()</code></td><td>Returns the full <code>Set&lt;String&gt;</code> of all active run modes from <code>SlingSettingsService</code>.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="RunModeServiceImpl" class="class-section">
+        <div class="class-header"><span class="badge">OSGi Service</span><h2>RunModeServiceImpl</h2><span class="pkg">services.impl</span></div>
+        <div class="class-body">
+            <p class="class-desc">Concrete implementation of <code>RunModeService</code>. Delegates all run mode checks to the injected <code>SlingSettingsService</code>, which provides the authoritative set of active run modes from the AEM instance configuration. Each method simply checks if the corresponding string is present in the run mode set.</p>
+        </div>
+    </section>
+
+    <section id="ExternalApiService" class="class-section">
+        <div class="class-header"><span class="badge">Interface</span><h2>ExternalApiService</h2><span class="pkg">services</span></div>
+        <div class="class-body">
+            <p class="class-desc">Service interface for fetching product data from an external REST API. Defines a single <code>fetchProductData(String sku)</code> method, isolating the HTTP concern from callers like workflow steps or models that need product information.</p>
+            <h3>Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Return</th><th>Description</th></tr>
+                <tr><td><code>fetchProductData(String sku)</code></td><td>String</td><td>Fetches raw product data JSON for the given SKU. Returns null or empty string if the request fails or returns a non-200 status.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="ExternalApiServiceImpl" class="class-section">
+        <div class="class-header"><span class="badge">OSGi Service</span><h2>ExternalApiServiceImpl</h2><span class="pkg">services.impl</span></div>
+        <div class="class-body">
+            <p class="class-desc">Production-grade HTTP client service using Apache HttpComponents with a <code>PoolingHttpClientConnectionManager</code>. The HTTP client is created once in <code>@Activate</code> and reused for the lifetime of the OSGi service (connection pooling), avoiding the performance cost of creating a new client per request. Properly closed on <code>@Deactivate</code>.</p>
+            <h3>Connection Pool Configuration</h3>
+            <table>
+                <tr><th>Parameter</th><th>Source</th><th>Description</th></tr>
+                <tr><td>Max Total Connections</td><td>ApiConfig.max_connections()</td><td>Total connections across all routes in the pool.</td></tr>
+                <tr><td>Default Max Per Route</td><td>Hardcoded: 20</td><td>Max connections to any single host/route.</td></tr>
+                <tr><td>Connect Timeout</td><td>ApiConfig.connection_timeout()</td><td>Max time to establish TCP handshake (ms).</td></tr>
+                <tr><td>Socket Timeout</td><td>ApiConfig.connection_timeout()</td><td>Max time to wait between data packets (ms).</td></tr>
+                <tr><td>Connection Request Timeout</td><td>Hardcoded: 2000ms</td><td>Max time to wait for a free connection from the pool.</td></tr>
+            </table>
+            <h3>Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Lifecycle</th><th>Description</th></tr>
+                <tr><td><code>activate(ApiConfig)</code></td><td>@Activate</td><td>Initializes the connection manager, request config, and HTTP client.</td></tr>
+                <tr><td><code>fetchProductData(sku)</code></td><td>Service method</td><td>Executes a GET request. On 200 returns the response body; on non-200 logs the error. Connection is auto-returned to the pool via try-with-resources.</td></tr>
+                <tr><td><code>deactivate()</code></td><td>@Deactivate</td><td>Closes the <code>CloseableHttpClient</code> to release all connections and pool resources.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="GoogleRecaptchaConfigService" class="class-section">
+        <div class="class-header"><span class="badge">Interface</span><h2>GoogleRecaptchaConfigService</h2><span class="pkg">services</span></div>
+        <div class="class-body">
+            <p class="class-desc">Service interface for accessing Google reCAPTCHA configuration values at runtime. Implementations are OSGi factory services — one instance per configured site. Callers use the static registry methods in the implementation to look up a site-specific instance by site name.</p>
+            <h3>Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Description</th></tr>
+                <tr><td><code>getSiteName()</code></td><td>Returns the configured site identifier.</td></tr>
+                <tr><td><code>getPublicKey()</code></td><td>Returns the reCAPTCHA public (site) key for this configuration.</td></tr>
+                <tr><td><code>getPrivateKey()</code></td><td>Returns the reCAPTCHA private (secret) key for server-side verification.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="GoogleRecaptchaConfigServiceImplV1" class="class-section">
+        <div class="class-header"><span class="badge">OSGi Service (v1)</span><h2>GoogleRecaptchaConfigServiceImpl (v1)</h2><span class="pkg">services.impl.v1</span></div>
+        <div class="class-body">
+            <p class="class-desc"><strong>Container-managed lifecycle pattern.</strong> The service instances register themselves into a static registry via a companion <code>Registry</code> inner class that uses <code>@Reference(cardinality=MULTIPLE, policy=DYNAMIC)</code> bind/unbind methods. The OSGi container manages when to call bind/unbind — the developer only reacts to those events. This is the container-managed variant of the multi-instance registry.</p>
+            <div class="note"><strong>Design:</strong> The inner <code>Registry</code> class is a separate <code>@Component</code> that holds the static <code>ConcurrentHashMap</code>. Whenever a new <code>GoogleRecaptchaConfigService</code> OSGi service appears or disappears, the container calls <code>bind()</code> / <code>unbind()</code> on Registry, which updates the map. Consumers call <code>Registry.getGoogleRecaptchaConfigService(siteName)</code> to look up a site.</div>
+            <h3>Static Registry Inner Class</h3>
+            <table>
+                <tr><th>Method</th><th>Description</th></tr>
+                <tr><td><code>bind(GoogleRecaptchaConfigService)</code></td><td>Called by OSGi when a new service instance appears. Puts it in the registry map by site name.</td></tr>
+                <tr><td><code>unbind(GoogleRecaptchaConfigService)</code></td><td>Called by OSGi when a service instance disappears. Removes it from the map.</td></tr>
+                <tr><td><code>getGoogleRecaptchaConfigService(siteName)</code></td><td>Static lookup — returns the service for the named site.</td></tr>
+                <tr><td><code>getRegistry()</code></td><td>Returns an unmodifiable view of the full registry map.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="GoogleRecaptchaConfigServiceImplV2" class="class-section">
+        <div class="class-header"><span class="badge">OSGi Service (v2)</span><h2>GoogleRecaptchaConfigServiceImpl (v2)</h2><span class="pkg">services.impl.v2</span></div>
+        <div class="class-body">
+            <p class="class-desc"><strong>Application-managed lifecycle pattern.</strong> Each factory instance directly manages its own registration: <code>@Activate</code> calls <code>REGISTRY.put(siteName, this)</code> and <code>@Deactivate</code> calls <code>REGISTRY.remove(siteName)</code>. Simpler structure than v1 — no inner class, no dynamic references — but the developer owns thread safety and lifecycle guarantees. Both patterns produce the same runtime result: a map of site-specific service instances.</p>
+            <div class="note info"><strong>v1 vs v2:</strong> v1 (container-managed via bind/unbind) is safer for dynamic hot-swap and multi-bundle scenarios. v2 (application-managed via @Activate/@Deactivate) is simpler to write and sufficient for most use cases where all factory instances are in the same bundle.</div>
+        </div>
+    </section>
+
+    <!-- ===== SEARCH ===== -->
+    <section id="ArticleSearchRequest" class="class-section">
+        <div class="class-header"><span class="badge">DTO / Builder</span><h2>ArticleSearchRequest</h2><span class="pkg">com.sibi.aem.one.core.services.search</span></div>
+        <div class="class-body">
+            <p class="class-desc">Immutable request value object using the Builder pattern. Encapsulates all search criteria for article queries passed to <code>ArticleSearchService</code>. The constructor is private; callers use <code>ArticleSearchRequest.builder()</code> to chain only the parameters they care about, with sensible defaults for everything else. This prevents large constructor signatures and allows future fields without breaking callers.</p>
+            <h3>Builder Fields (Selected)</h3>
+            <table>
+                <tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                <tr><td>rootPath</td><td>String</td><td>/content/sibi-aem-one/en</td><td>JCR root path to search under.</td></tr>
+                <tr><td>excludePath</td><td>String</td><td>null</td><td>Sub-path to exclude from results (e.g. /drafts).</td></tr>
+                <tr><td>categories</td><td>List&lt;String&gt;</td><td>null</td><td>OR list of category values.</td></tr>
+                <tr><td>authors</td><td>List&lt;String&gt;</td><td>null</td><td>OR list of author IDs.</td></tr>
+                <tr><td>tags</td><td>List&lt;String&gt;</td><td>null</td><td>OR list of tag IDs.</td></tr>
+                <tr><td>fullTextQuery</td><td>String</td><td>null</td><td>Full-text search query scoped to jcr:content.</td></tr>
+                <tr><td>featuredOnly</td><td>boolean</td><td>false</td><td>Filter to only featured articles.</td></tr>
+                <tr><td>excludeArchived</td><td>boolean</td><td>true</td><td>Exclude articles with status "archived".</td></tr>
+                <tr><td>pageNumber / pageSize</td><td>int</td><td>0 / 10</td><td>Zero-based page index and page size.</td></tr>
+                <tr><td>sortProperty / sortOrder</td><td>String</td><td>publishDate / desc</td><td>JCR property path and sort direction.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="ArticleSearchResult" class="class-section">
+        <div class="class-header"><span class="badge">DTO</span><h2>ArticleSearchResult</h2><span class="pkg">search</span></div>
+        <div class="class-body">
+            <p class="class-desc">Rich result envelope returned by <code>ArticleSearchService.search()</code>. Contains a list of <code>ArticleHit</code> inner class instances plus pagination metadata. The <code>hasMore</code> flag lets callers implement infinite scroll without fetching the full result count on every page. The <code>queryTimeMs</code> field supports performance monitoring.</p>
+            <h3>ArticleHit Inner DTO Fields</h3>
+            <table>
+                <tr><th>Field</th><th>Type</th><th>JCR Source</th></tr>
+                <tr><td>path</td><td>String</td><td>Page node path</td></tr>
+                <tr><td>title</td><td>String</td><td>jcr:content/jcr:title</td></tr>
+                <tr><td>author</td><td>String</td><td>jcr:content/authorId</td></tr>
+                <tr><td>publishDate</td><td>String</td><td>jcr:content/publishDate</td></tr>
+                <tr><td>category</td><td>String</td><td>jcr:content/category</td></tr>
+                <tr><td>tags</td><td>List&lt;String&gt;</td><td>jcr:content/cq:tags</td></tr>
+                <tr><td>featured</td><td>boolean</td><td>jcr:content/featured</td></tr>
+                <tr><td>thumbnailPath</td><td>String</td><td>jcr:content/thumbnail</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="ArticleSearchService" class="class-section">
+        <div class="class-header"><span class="badge">Interface</span><h2>ArticleSearchService</h2><span class="pkg">search</span></div>
+        <div class="class-body">
+            <p class="class-desc">Service contract for JCR-based article search using the AEM QueryBuilder API. Implementations are expected to translate the <code>ArticleSearchRequest</code> into QueryBuilder predicates, execute the query, and return an <code>ArticleSearchResult</code>. The caller's <code>ResourceResolver</code> is passed in so the service uses the caller's JCR session and respects their ACL permissions.</p>
+            <h3>Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Description</th></tr>
+                <tr><td><code>search(ArticleSearchRequest, ResourceResolver)</code></td><td>Executes the structured search and returns a paginated result. The ResourceResolver must remain open for the duration of the call (do not close it before this method returns).</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="ArticleSearchServiceImpl" class="class-section">
+        <div class="class-header"><span class="badge">OSGi Service</span><h2>ArticleSearchServiceImpl</h2><span class="pkg">search</span></div>
+        <div class="class-body">
+            <p class="class-desc">The most comprehensive class in the project — implements <code>ArticleSearchService</code> using two complementary QueryBuilder approaches in a single method. Approach A uses flat <code>Predicate</code> objects (type, path, date range, fulltext, tags, ordering, pagination). Approach B uses nested <code>PredicateGroup</code> for OR and NOT logic (categories, authors, templates, featured flag, exclude-archived). Results are mapped from JCR <code>Hit</code> objects to <code>ArticleHit</code> DTOs.</p>
+            <h3>QueryBuilder Predicates Used</h3>
+            <table>
+                <tr><th>Predicate</th><th>Approach</th><th>Purpose</th></tr>
+                <tr><td>type = cq:Page</td><td>A</td><td>Constrains results to page nodes. Oak uses the node type index — always declare first.</td></tr>
+                <tr><td>path + path.exclude</td><td>A</td><td>Root scope with optional sub-tree exclusion.</td></tr>
+                <tr><td>nodename (glob)</td><td>A</td><td>Pattern match on the JCR node name only (e.g. "2024-*").</td></tr>
+                <tr><td>1_property (resource type)</td><td>A</td><td>Pins results to the article component resource type.</td></tr>
+                <tr><td>daterange</td><td>A</td><td>Publish date lower/upper bounds with inclusive operators.</td></tr>
+                <tr><td>fulltext + relPath</td><td>A</td><td>Full-text search scoped to jcr:content only (avoids scanning renditions).</td></tr>
+                <tr><td>tagid + tagid.property</td><td>A</td><td>Tag matching with explicit property path.</td></tr>
+                <tr><td>orderby + orderby.sort</td><td>A</td><td>Sort by configurable JCR property in asc/desc order.</td></tr>
+                <tr><td>p.guessTotal</td><td>A</td><td>Performance-safe result count estimation.</td></tr>
+                <tr><td>p.limit / p.offset</td><td>A</td><td>Pagination via offset calculation.</td></tr>
+                <tr><td>OR group (categories/authors/templates)</td><td>B</td><td>Multi-value OR across a single JCR property.</td></tr>
+                <tr><td>featured (single-value property)</td><td>B</td><td>Boolean flag filter.</td></tr>
+                <tr><td>NOT group (exclude archived)</td><td>B</td><td>Negated predicate group excluding archived articles.</td></tr>
+            </table>
+            <div class="note info"><strong>p.guessTotal:</strong> Critical for performance. Without it, QueryBuilder traverses every matching node to compute an exact count — catastrophic on large repos. Set it to <code>pageSize * 10</code> as a reasonable upper estimate.</div>
+        </div>
+    </section>
+
+    <section id="FeaturedArticlePredicateEvaluator" class="class-section">
+        <div class="class-header"><span class="badge">Custom Predicate</span><h2>FeaturedArticlePredicateEvaluator</h2><span class="pkg">search</span></div>
+        <div class="class-body">
+            <p class="class-desc">Custom <code>PredicateEvaluator</code> registered as an OSGi service with predicate name <code>featuredArticle</code>. Filters articles by reading a boolean JCR property. Implements <code>canXpath() = false</code> meaning the filter always runs as an in-memory post-filter, not as an XPath clause. Only use custom evaluators when the built-in predicates genuinely cannot express the filtering rule. Note: for simple boolean filtering, the standard property predicate is sufficient; this evaluator exists as a teaching example.</p>
+            <div><span class="ann osgi">@Component(predicate.name=featuredArticle)</span></div>
+            <h3>Predicate Parameters</h3>
+            <table>
+                <tr><th>Parameter</th><th>Default</th><th>Description</th></tr>
+                <tr><td>featuredArticle</td><td>—</td><td>Set to "true" to activate filtering. Any other value bypasses the filter (includes all).</td></tr>
+                <tr><td>property</td><td>jcr:content/featured</td><td>Relative property path from the page node to the boolean featured property.</td></tr>
+            </table>
+            <h3>Methods</h3>
+            <table>
+                <tr><th>Method</th><th>Description</th></tr>
+                <tr><td><code>includes(Predicate, Row, EvaluationContext)</code></td><td>Called per node. Walks the relative property path segment by segment, reads the boolean value, and returns true to include or false to exclude the node.</td></tr>
+                <tr><td><code>canXpath()</code></td><td>Returns false — this predicate runs as a post-filter, never as an XPath clause.</td></tr>
+                <tr><td><code>canFilter()</code></td><td>Returns true — allows <code>includes()</code> to be invoked as a post-filter after Oak returns the base result set.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="EditorialScorePredicateEvaluator" class="class-section">
+        <div class="class-header"><span class="badge">Custom Predicate</span><h2>EditorialScorePredicateEvaluator</h2><span class="pkg">search</span></div>
+        <div class="class-body">
+            <p class="class-desc">A justified custom <code>PredicateEvaluator</code> that filters articles by a computed editorial score — a weighted combination of three JCR properties: <code>featured</code> (boolean, +50), <code>priority</code> (high/medium/low = +30/+20/+10), and <code>viewCount</code> (normalised, capped at +20). This multi-property arithmetic cannot be expressed using any combination of built-in predicates, making this a genuine custom evaluator use case.</p>
+            <div><span class="ann osgi">@Component(predicate.name=editorialScore)</span></div>
+            <h3>Score Computation</h3>
+            <table>
+                <tr><th>Property</th><th>Contribution</th><th>Condition</th></tr>
+                <tr><td>featured</td><td>+50</td><td>If jcr:content/featured = true</td></tr>
+                <tr><td>priority</td><td>+30 / +20 / +10</td><td>If jcr:content/priority = high / medium / low</td></tr>
+                <tr><td>viewCount</td><td>+0 to +20</td><td>min(viewCount / 1000, 20)</td></tr>
+            </table>
+            <h3>Parameters</h3>
+            <table>
+                <tr><th>Parameter</th><th>Default</th><th>Description</th></tr>
+                <tr><td>editorialScore.minScore</td><td>50</td><td>Minimum computed score for a node to be included in results.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <!-- ===== SERVLETS ===== -->
+    <section id="SimpleServlet" class="class-section">
+        <div class="class-header"><span class="badge">Servlet</span><h2>SimpleServlet</h2><span class="pkg">com.sibi.aem.one.core.servlets</span></div>
+        <div class="class-body">
+            <p class="class-desc">Minimal Sling servlet demonstrating resource-type-based registration. Extends <code>SlingSafeMethodsServlet</code> (read-only operations only). Registered for the resource type <code>sibi-aem-one/components/page</code> with GET method and <code>.txt</code> extension. Renders the <code>jcr:title</code> property of the current resource as plain text.</p>
+            <div><span class="ann sling">@SlingServletResourceTypes(resourceTypes="sibi-aem-one/components/page", methods=GET, extensions=txt)</span></div>
+        </div>
+    </section>
+
+    <section id="PathRegistrationServlet" class="class-section">
+        <div class="class-header"><span class="badge">Servlet</span><h2>PathRegistrationServlet</h2><span class="pkg">servlets</span></div>
+        <div class="class-body">
+            <p class="class-desc">Servlet registered on a fixed path <code>/bin/sibi-aem-one/services/getDetails</code> using <code>@SlingServletPaths</code>. This is the legacy path-based registration approach. Unlike resource-type registration, path-based servlets bypass JCR ACLs and require explicit authentication configuration in <code>SlingAuthenticator</code> if they must be accessible anonymously. Demonstrates injection of a <code>GoogleRecaptchaConfigService</code>.</p>
+            <div><span class="ann sling">@SlingServletPaths("/bin/sibi-aem-one/services/getDetails")</span></div>
+            <div class="note warn"><strong>Security note:</strong> Path-based servlet registration is old and has security implications. Prefer resource-type registration (<code>@SlingServletResourceTypes</code>) for all new development.</div>
+        </div>
+    </section>
+
+    <section id="ResourceTypeRegistrationServlet" class="class-section">
+        <div class="class-header"><span class="badge">Servlet</span><h2>ResourceTypeRegistrationServlet</h2><span class="pkg">servlets</span></div>
+        <div class="class-body">
+            <p class="class-desc">Resource-type-based servlet (best practice). Registered for <code>sibi-aem-one/services/getDetails</code> resource type with the <code>data</code> selector and <code>json</code> extension. The ACLs of the JCR node having this resource type control access — unlike path registration. Injects both <code>RunModeService</code> and <code>GoogleRecaptchaConfigService</code>, demonstrating multi-service injection in a servlet.</p>
+            <div><span class="ann sling">@SlingServletResourceTypes(resourceTypes="sibi-aem-one/services/getDetails", selectors="data", extensions="json")</span></div>
+        </div>
+    </section>
+
+    <section id="ArticleSearchServlet" class="class-section">
+        <div class="class-header"><span class="badge">Servlet</span><h2>ArticleSearchServlet</h2><span class="pkg">servlets</span></div>
+        <div class="class-body">
+            <p class="class-desc">HTTP GET endpoint at <code>/bin/mysite/articles/search.json</code> that wraps <code>ArticleSearchService</code>. Parses comma-separated query parameters, builds an <code>ArticleSearchRequest</code> using the Builder pattern, calls the search service, and serialises the <code>ArticleSearchResult</code> to JSON using Gson. Demonstrates end-to-end wiring from HTTP input to QueryBuilder output.</p>
+            <h3>Query Parameters</h3>
+            <table>
+                <tr><th>Parameter</th><th>Example</th><th>Description</th></tr>
+                <tr><td>category</td><td>technology,sports</td><td>Comma-separated list of article categories (OR match).</td></tr>
+                <tr><td>author</td><td>alice,bob</td><td>Comma-separated author IDs (OR match).</td></tr>
+                <tr><td>tag</td><td>mysite:topic/aem</td><td>Comma-separated tag IDs.</td></tr>
+                <tr><td>publishedAfter</td><td>2024-01-01T00:00:00.000+05:30</td><td>ISO-8601 lower date bound for publish date.</td></tr>
+                <tr><td>publishedBefore</td><td>2024-12-31T23:59:59.000+05:30</td><td>ISO-8601 upper date bound for publish date.</td></tr>
+                <tr><td>q</td><td>query+builder+api</td><td>Full-text search query.</td></tr>
+                <tr><td>featured</td><td>true</td><td>Filter to featured articles only.</td></tr>
+                <tr><td>page / pageSize</td><td>0 / 10</td><td>Pagination: zero-based page index and items per page.</td></tr>
+                <tr><td>sortBy / sortOrder</td><td>jcr:content/publishDate / desc</td><td>Sort property and direction.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <!-- ===== WORKFLOWS ===== -->
+    <section id="ProductSyncProcess" class="class-section">
+        <div class="class-header"><span class="badge">Workflow Process</span><h2>ProductSyncProcess</h2><span class="pkg">com.sibi.aem.one.core.workflows</span></div>
+        <div class="class-body">
+            <p class="class-desc">Workflow process step that syncs product data from an external API. Reads a <code>productSku</code> from the payload's <code>jcr:content</code> node, calls <code>ExternalApiService.fetchProductData()</code>, and sets a <code>syncStatus</code> workflow variable to SUCCESS or initiates retry logic. Demonstrates use of workflow metadata maps for both reading (retryCount) and writing (syncStatus) cross-step state.</p>
+            <div><span class="ann osgi">@Component(service=WorkflowProcess.class, process.label="Product Sync Process")</span></div>
+            <h3>Retry Logic</h3>
+            <table>
+                <tr><th>retryCount</th><th>Action</th></tr>
+                <tr><td>&lt; 3</td><td>Increments retryCount, sets syncStatus = "RETRY". A Goto Step in the workflow model routes back to this step.</td></tr>
+                <tr><td>≥ 3</td><td>Sets syncStatus = "FAILED" and throws <code>WorkflowException</code> to terminate the workflow.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="AdvancedProductSyncProcess" class="class-section">
+        <div class="class-header"><span class="badge">Workflow Process</span><h2>AdvancedProductSyncProcess</h2><span class="pkg">workflows</span></div>
+        <div class="class-body">
+            <p class="class-desc">Advanced variant of the product sync process that uses a direct Apache HttpClient call (no injected service). Reads <code>productSku</code> from the payload, makes an HTTP call, handles 200/non-200 responses separately, and uses the same retry pattern via workflow metadata. Includes a <code>processSuccess()</code> helper that parses the JSON response entity and marks the workflow variable.</p>
+        </div>
+    </section>
+
+    <section id="ProductDataHarmonizer" class="class-section">
+        <div class="class-header"><span class="badge">Workflow Process</span><h2>ProductDataHarmonizer</h2><span class="pkg">workflows</span></div>
+        <div class="class-body">
+            <p class="class-desc">Workflow step that validates a product ID against a PIM (Product Information Management) system and stores the result in a workflow variable for downstream steps. Demonstrates the three-layer metadata map pattern: reads from the payload resource (<code>ResourceResolver</code>), validates via an external service, and stores the result in <code>WorkflowData.getMetaDataMap()</code> so subsequent steps can route based on <code>pimStatus</code>.</p>
+            <h3>Metadata Map Usage</h3>
+            <table>
+                <tr><th>Map</th><th>Usage in this step</th></tr>
+                <tr><td>Step args (MetaDataMap)</td><td>Not used — all config is in the payload node.</td></tr>
+                <tr><td>WorkflowData MetaDataMap</td><td>Writes <code>pimStatus = "validated"</code> for the next workflow step to read.</td></tr>
+                <tr><td>WorkItem MetaDataMap</td><td>Not used — this step has no step-local data.</td></tr>
+            </table>
+        </div>
+    </section>
+
+    <section id="ContentTypeRouter" class="class-section">
+        <div class="class-header"><span class="badge">Workflow Process</span><h2>ContentTypeRouter</h2><span class="pkg">workflows</span></div>
+        <div class="class-body">
+            <p class="class-desc">A routing step used before an OR Split in the workflow model. Examines the payload path and sets a <code>route</code> workflow variable to either "asset" (DAM path) or "page" (content path). The OR Split in the workflow model uses an ECMA rule <code>workflowData.metaData.route == 'asset'</code> to choose the correct branch, enabling content-type-aware workflow routing without hard-coding the logic in the model.</p>
+        </div>
+    </section>
+
+    <section id="LegalApprovalProcess" class="class-section">
+        <div class="class-header"><span class="badge">Workflow Process</span><h2>LegalApprovalProcess</h2><span class="pkg">workflows</span></div>
+        <div class="class-body">
+            <p class="class-desc">Workflow step that sets a <code>legalApproved = true</code> property on the payload's jcr:content node and moves the asset to a <code>/content/dam/certified-assets/</code> destination path using a JCR <code>Session.move()</code>. Demonstrates adapting from <code>ResourceResolver</code> to JCR <code>Session</code> for direct JCR operations, and using a service user subservice for permission management.</p>
+        </div>
+    </section>
+
+    <section id="LocaleParticipantChooser" class="class-section">
+        <div class="class-header"><span class="badge">Workflow Participant</span><h2>LocaleParticipantChooser</h2><span class="pkg">workflows</span></div>
+        <div class="class-body">
+            <p class="class-desc">A dynamic participant chooser for AEM Workflow Participant Steps. Instead of assigning a task to a hardcoded user or group in the workflow model, this chooser examines the payload path for locale indicators (e.g., <code>/fr/</code>, <code>/de/</code>) and returns the appropriate AEM group ID. The group ID must exist in AEM User Management. Falls back to <code>global-reviewers</code> if no locale is matched.</p>
+            <div><span class="ann osgi">@Component(service=ParticipantStepChooser.class, chooser.label="Locale-Based Translator Chooser")</span></div>
+            <h3>Locale Routing</h3>
+            <table>
+                <tr><th>Path Pattern</th><th>Assigned Group</th></tr>
+                <tr><td>contains /fr/ or /fr_fr/</td><td>fr-translators</td></tr>
+                <tr><td>contains /de/</td><td>de-translators</td></tr>
+                <tr><td>(default)</td><td>global-reviewers</td></tr>
+            </table>
+        </div>
+    </section>
+
+</div>
+
+<script>
+    // Highlight active sidebar link based on scroll
+    const sections = document.querySelectorAll('[id]');
+    const links = document.querySelectorAll('#sidebar a');
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(s => { if (window.scrollY >= s.offsetTop - 80) current = s.id; });
+      links.forEach(l => {
+        l.classList.remove('active');
+        if (l.getAttribute('href') === '#' + current) l.classList.add('active');
+      });
+    }, { passive: true });
+</script>
+</body>
+</html>
