@@ -1,0 +1,55 @@
+<sly data-sly-use.teaser="com.sibi.aem.one.core.models.AdvancedTeaser"
+     data-sly-use.template="core/wcm/components/commons/v1/templates.html">
+
+    <sly data-sly-call="${template.placeholder @ isEmpty=!teaser.title}"></sly>
+
+    <div class="cmp-advanced-teaser cmp-advanced-teaser--style-${teaser.teaserStyle}"
+         data-sly-test="${teaser.title}">
+
+        <div class="cmp-advanced-teaser__image"
+             style="background-image: url('${teaser.fileReference @ context='uri'}');">
+        </div>
+
+        <div class="cmp-advanced-teaser__content"
+             style="color: ${teaser.overlayColor @ context='styleString'};">
+
+            <div class="cmp-advanced-teaser__badges">
+                <span data-sly-test="${teaser.campaignCategory}">${teaser.campaignCategory}</span>
+                <span data-sly-test="${teaser.secondaryCampaign}">${teaser.secondaryCampaign}</span>
+            </div>
+
+            <h2 class="cmp-advanced-teaser__title">${teaser.title}</h2>
+
+            <p class="cmp-advanced-teaser__description" data-sly-test="${teaser.description}">
+                ${teaser.description}
+            </p>
+
+            <div class="cmp-advanced-teaser__rich-description" data-sly-test="${teaser.richDescription}">
+                ${teaser.richDescription @ context='html'}
+            </div>
+
+            <sly data-sly-test="${teaser.enableTimer && teaser.targetDate}">
+                <div class="cmp-advanced-teaser__timer" data-end-date="${teaser.targetDate @ format='yyyy-MM-dd'}">
+                    Loading countdown...
+                </div>
+            </sly>
+
+            <div class="cmp-advanced-teaser__actions" data-sly-test="${teaser.buttons}">
+                <ul class="cmp-advanced-teaser__button-list" data-sly-list.btn="${teaser.buttons}">
+                    <li><a href="${btn.link}" class="btn btn-primary">${btn.text}</a></li>
+                </ul>
+            </div>
+
+            <div class="cmp-advanced-teaser__locations" data-sly-test="${teaser.regions}">
+                <h3>Available Locations</h3>
+                <div class="cmp-advanced-teaser__region" data-sly-list.region="${teaser.regions}">
+                    <h4 class="cmp-advanced-teaser__region-name">${region.regionName}</h4>
+                    <ul class="cmp-advanced-teaser__store-list" data-sly-list.store="${region.stores}">
+                        <li><a href="${store.storeLink}">${store.storeName}</a></li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</sly>

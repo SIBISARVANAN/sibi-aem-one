@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0"
+          xmlns:granite="http://www.adobe.com/jcr/granite/1.0"
+          xmlns:cq="http://www.day.com/jcr/cq/1.0"
+          xmlns:jcr="http://www.jcp.org/jcr/1.0"
+          xmlns:nt="http://www.jcp.org/jcr/nt/1.0"
+          jcr:primaryType="nt:unstructured"
+          jcr:title="Advanced Promotional Teaser"
+          sling:resourceType="cq/gui/components/authoring/dialog">
+    <content
+            jcr:primaryType="nt:unstructured"
+            sling:resourceType="granite/ui/components/coral/foundation/container">
+        <items jcr:primaryType="nt:unstructured">
+            <tabs
+                    jcr:primaryType="nt:unstructured"
+                    sling:resourceType="granite/ui/components/coral/foundation/tabs"
+                    maximized="{Boolean}true">
+                <items jcr:primaryType="nt:unstructured">
+
+                    <contentTab
+                            jcr:primaryType="nt:unstructured"
+                            jcr:title="Content"
+                            sling:resourceType="granite/ui/components/coral/foundation/container"
+                            margin="{Boolean}true">
+                        <items jcr:primaryType="nt:unstructured">
+
+                            <title
+                                    jcr:primaryType="nt:unstructured"
+                                    sling:resourceType="granite/ui/components/coral/foundation/form/textfield"
+                                    fieldLabel="Title"
+                                    name="./title"
+                                    required="{Boolean}true"/>
+
+                            <description
+                                    jcr:primaryType="nt:unstructured"
+                                    sling:resourceType="granite/ui/components/coral/foundation/form/textarea"
+                                    fieldLabel="Brief Description (Plain Text)"
+                                    name="./description"/>
+
+                            <richDescription
+                                    jcr:primaryType="nt:unstructured"
+                                    sling:resourceType="cq/gui/components/authoring/dialog/richtext"
+                                    fieldLabel="Rich Body Text"
+                                    name="./richDescription"
+                                    useFixedInlineToolbar="{Boolean}true">
+                                <rtePlugins jcr:primaryType="nt:unstructured">
+                                    <format jcr:primaryType="nt:unstructured" features="*"/>
+                                    <justify jcr:primaryType="nt:unstructured" features="*"/>
+                                    <lists jcr:primaryType="nt:unstructured" features="*"/>
+                                    <links jcr:primaryType="nt:unstructured" features="[modifylink,unlink,anchor]"/>
+                                    <paraformat jcr:primaryType="nt:unstructured" features="*">
+                                        <formats jcr:primaryType="nt:unstructured">
+                                            <p jcr:primaryType="nt:unstructured" description="Paragraph" tag="p"/>
+                                            <h3 jcr:primaryType="nt:unstructured" description="Heading 3" tag="h3"/>
+                                            <h4 jcr:primaryType="nt:unstructured" description="Heading 4" tag="h4"/>
+                                        </formats>
+                                    </paraformat>
+                                    <misctools jcr:primaryType="nt:unstructured" features="sourceedit"/>
+                                </rtePlugins>
+                                <uiSettings jcr:primaryType="nt:unstructured">
+                                    <cui jcr:primaryType="nt:unstructured">
+                                        <inline jcr:primaryType="nt:unstructured" toolbar="[format#bold,format#italic,format#underline,#justify,#lists,links#modifylink,links#unlink,#paraformat,misctools#sourceedit]">
+                                            <popovers jcr:primaryType="nt:unstructured">
+                                                <justify jcr:primaryType="nt:unstructured" items="[justify#justifyleft,justify#justifycenter,justify#justifyright]" ref="justify"/>
+                                                <lists jcr:primaryType="nt:unstructured" items="[lists#unordered,lists#ordered,lists#outdent,lists#indent]" ref="lists"/>
+                                                <paraformat jcr:primaryType="nt:unstructured" items="*_get" ref="paraformat"/>
+                                            </popovers>
+                                        </inline>
+                                    </cui>
+                                </uiSettings>
+                            </richDescription>
+
+                            <teaserStyle
+                                    jcr:primaryType="nt:unstructured"
+                                    sling:resourceType="granite/ui/components/coral/foundation/form/select"
+                                    fieldLabel="Teaser Style"
+                                    name="./teaserStyle"
+                                    granite:class="cq-dialog-dropdown-showhide"
+                                    cq-dialog-dropdown-showhide-target=".teaser-style-target">
+                                <items jcr:primaryType="nt:unstructured">
+                                    <left jcr:primaryType="nt:unstructured" text="Image Left" value="left"/>
+                                    <right jcr:primaryType="nt:unstructured" text="Image Right" value="right"/>
+                                    <bg jcr:primaryType="nt:unstructured" text="Background Image" value="bg"/>
+                                </items>
+                            </teaserStyle>
+
+                            <overlayColor
+                                    jcr:primaryType="nt:unstructured"
+                                    sling:resourceType="granite/ui/components/coral/foundation/form/colorfield"
+                                    fieldLabel="Overlay Text Color"
+                                    name="./overlayColor"
+                                    granite:class="hide teaser-style-target"
+                                    showhidetargetvalue="bg"/>
+
+                            <campaignCategory
+                                    jcr:primaryType="nt:unstructured"
+                                    sling:resourceType="granite/ui/components/coral/foundation/form/select"
+                                    fieldLabel="Campaign Category (Dynamic Datasource)"
+                                    name="./campaignCategory"
+                                    emptyText="Select a campaign...">
+                                <datasource
+                                        jcr:primaryType="nt:unstructured"
+                                        sling:resourceType="myproject/datasource/campaigns"/>
+                            </campaignCategory>
+
+                            <secondaryCampaign
+                                    jcr:primaryType="nt:unstructured"
+                                    sling:resourceType="granite/ui/components/coral/foundation/form/select"
+                                    fieldLabel="Secondary Theme (ACS Commons)"
+                                    name="./secondaryCampaign"
+                                    emptyText="Select from Generic List...">
+                                <datasource
+                                        jcr:primaryType="nt:unstructured"
+                                        sling:resourceType="acs-commons/components/utilities/genericlist/datasource"
+                                        path="/etc/acs-commons/lists/campaign-themes"/>
+                            </secondaryCampaign>
+
+                        </items>
+                    </contentTab>
+
+                    <advancedTab
+                            jcr:primaryType="nt:unstructured"
+                            jcr:title="Media &amp; Advanced"
+                            sling:resourceType="granite/ui/components/coral/foundation/container"
+                            margin="{Boolean}true">
+                        <items jcr:primaryType="nt:unstructured">
+
+                            <imagePath
+                                    jcr:primaryType="nt:unstructured"
+                                    sling:resourceType="cq/gui/components/coral/foundation/form/pathfield"
+                                    fieldLabel="Teaser Image"
+                                    name="./fileReference"
+                                    rootPath="/content/dam"/>
+
+                            <advancedAccordion
+                                    jcr:primaryType="nt:unstructured"
+                                    sling:resourceType="granite/ui/components/coral/foundation/accordion">
+                                <items jcr:primaryType="nt:unstructured">
+                                    <timerPanel
+                                            jcr:primaryType="nt:unstructured"
+                                            jcr:title="Countdown Timer Settings"
+                                            sling:resourceType="granite/ui/components/coral/foundation/container">
+                                        <items jcr:primaryType="nt:unstructured">
+
+                                            <enableTimer
+                                                    jcr:primaryType="nt:unstructured"
+                                                    sling:resourceType="granite/ui/components/coral/foundation/form/checkbox"
+                                                    text="Enable Countdown Timer?"
+                                                    name="./enableTimer"
+                                                    value="true"
+                                                    granite:class="cq-dialog-checkbox-showhide"
+                                                    cq-dialog-checkbox-showhide-target=".timer-target"/>
+
+                                            <timerWrapper
+                                                    jcr:primaryType="nt:unstructured"
+                                                    sling:resourceType="granite/ui/components/coral/foundation/container"
+                                                    granite:class="hide timer-target">
+                                                <items jcr:primaryType="nt:unstructured">
+                                                    <targetDate
+                                                            jcr:primaryType="nt:unstructured"
+                                                            sling:resourceType="granite/ui/components/coral/foundation/form/datepicker"
+                                                            fieldLabel="Target End Date"
+                                                            name="./targetDate"
+                                                            type="datetime"/>
+                                                </items>
+                                            </timerWrapper>
+
+                                        </items>
+                                    </timerPanel>
+                                </items>
+                            </advancedAccordion>
+                        </items>
+                    </advancedTab>
+
+                    <actionsTab
+                            jcr:primaryType="nt:unstructured"
+                            jcr:title="Actions"
+                            sling:resourceType="granite/ui/components/coral/foundation/container"
+                            margin="{Boolean}true">
+                        <items jcr:primaryType="nt:unstructured">
+                            <buttons
+                                    jcr:primaryType="nt:unstructured"
+                                    sling:resourceType="granite/ui/components/coral/foundation/form/multifield"
+                                    composite="{Boolean}true"
+                                    fieldLabel="Call to Action Buttons">
+                                <field
+                                        jcr:primaryType="nt:unstructured"
+                                        sling:resourceType="granite/ui/components/coral/foundation/container"
+                                        name="./buttons">
+                                    <items jcr:primaryType="nt:unstructured">
+                                        <buttonText jcr:primaryType="nt:unstructured" sling:resourceType="granite/ui/components/coral/foundation/form/textfield" fieldLabel="Button Text" name="./text"/>
+                                        <buttonLink jcr:primaryType="nt:unstructured" sling:resourceType="cq/gui/components/coral/foundation/form/pathfield" fieldLabel="Button Link" name="./link" rootPath="/content"/>
+                                    </items>
+                                </field>
+                            </buttons>
+                        </items>
+                    </actionsTab>
+
+                    <locationsTab
+                            jcr:primaryType="nt:unstructured"
+                            jcr:title="Locations"
+                            sling:resourceType="granite/ui/components/coral/foundation/container"
+                            margin="{Boolean}true">
+                        <items jcr:primaryType="nt:unstructured">
+                            <regions
+                                    jcr:primaryType="nt:unstructured"
+                                    sling:resourceType="granite/ui/components/coral/foundation/form/multifield"
+                                    composite="{Boolean}true"
+                                    fieldLabel="Regions">
+                                <field
+                                        jcr:primaryType="nt:unstructured"
+                                        sling:resourceType="granite/ui/components/coral/foundation/container"
+                                        name="./regions">
+                                    <items jcr:primaryType="nt:unstructured">
+                                        <regionName jcr:primaryType="nt:unstructured" sling:resourceType="granite/ui/components/coral/foundation/form/textfield" fieldLabel="Region Name" name="./regionName"/>
+                                        <stores
+                                                jcr:primaryType="nt:unstructured"
+                                                sling:resourceType="granite/ui/components/coral/foundation/form/multifield"
+                                                composite="{Boolean}true"
+                                                fieldLabel="Stores in this Region">
+                                            <field
+                                                    jcr:primaryType="nt:unstructured"
+                                                    sling:resourceType="granite/ui/components/coral/foundation/container"
+                                                    name="./stores">
+                                                <items jcr:primaryType="nt:unstructured">
+                                                    <storeName jcr:primaryType="nt:unstructured" sling:resourceType="granite/ui/components/coral/foundation/form/textfield" fieldLabel="Store Name" name="./storeName"/>
+                                                    <storeLink jcr:primaryType="nt:unstructured" sling:resourceType="cq/gui/components/coral/foundation/form/pathfield" fieldLabel="Store Page Link" name="./storeLink" rootPath="/content"/>
+                                                </items>
+                                            </field>
+                                        </stores>
+                                    </items>
+                                </field>
+                            </regions>
+                        </items>
+                    </locationsTab>
+
+                </items>
+            </tabs>
+        </items>
+    </content>
+</jcr:root>

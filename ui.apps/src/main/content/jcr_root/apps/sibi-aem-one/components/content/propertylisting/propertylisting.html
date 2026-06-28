@@ -1,0 +1,62 @@
+<sly data-sly-use.model="com.sibi.aem.one.core.models.PropertyListing"
+     data-sly-test="${model.title}">
+<div class="property-listing" data-status="${model.status}" data-property-type="${model.propertyType}"
+     style="--theme-color:${model.themeColor @ context = 'styleString'}">
+
+    <div class="property-listing__badge" data-sly-test="${model.featured}"
+         style="background-color:${model.badgeColor @ context = 'styleString'}">Featured</div>
+
+    <h2 class="property-listing__title">${model.title}</h2>
+    <p class="property-listing__subtitle" data-sly-test="${model.subtitle}">${model.subtitle}</p>
+
+    <p class="property-listing__price">
+        ${model.formattedPrice} <span class="property-listing__currency-code">(${model.currency})</span>
+    </p>
+
+    <!-- Sold-date only renders when status is "sold" — the dropdown showhide's runtime counterpart -->
+    <p class="property-listing__sold-date" data-sly-test="${model.status == 'sold' && model.soldDate}">
+        Sold on ${model.soldDate}
+    </p>
+
+    <p class="property-listing__short-desc">${model.shortDescription}</p>
+    <div class="property-listing__description">${model.fullDescription @ context='html'}</div>
+
+    <ul class="property-listing__gallery" data-sly-list.img="${model.galleryImages}">
+        <li><img src="${img.imagePath}" alt="${img.caption}"/><span>${img.caption}</span></li>
+    </ul>
+
+    <ul class="property-listing__rooms" data-sly-list.room="${model.rooms}">
+        <li>
+            ${room.roomName} (${room.roomType}, ${room.areaSqft} sqft)
+            <ul data-sly-list.feature="${room.features}"><li>${feature}</li></ul>
+        </li>
+    </ul>
+
+    <ul class="property-listing__amenities" data-sly-list.tag="${model.amenityNames}">
+        <li>${tag}</li>
+    </ul>
+
+    <!-- Location / agent — rendered as sling:include so each can resolve to its own page render -->
+    <div class="property-listing__location" data-sly-test="${model.locationPagePath}"
+         data-sly-resource="${model.locationPagePath @ resourceType='sibi-aem-one/components/content/locationteaser'}"></div>
+
+    <div class="property-listing__agent" data-sly-test="${model.agentPagePath}">
+        <p>Contact preference: ${model.contactPreference}</p>
+        <a href="${model.agentPagePath}.html">View Agent Profile</a>
+    </div>
+
+    <p class="property-listing__availability" data-sly-test="${model.availableFrom}">
+        Available from: ${model.availableFrom}
+    </p>
+
+    <!-- Open house block only renders if the paired start/end dates are validly ordered -->
+    <p class="property-listing__open-house" data-sly-test="${model.openHouseRangeValid}">
+        Open House: ${model.openHouseStart} &ndash; ${model.openHouseEnd}
+    </p>
+
+    <!--/* searchVisible doesn't affect this template directly — it is consumed by the
+       site's sitemap/SEO generation layer (e.g. excluded from sitemap.xml, noindex meta
+       tag), not by the visual markup. Shown here as a comment for completeness. */-->
+
+</div>
+</sly>

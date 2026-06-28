@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Deployable ACS Commons Generic List for the "currency" datasource field.
+  This is the package-able equivalent of manually creating the list via
+  Tools > ACS Commons > Generic Lists in the AEM author UI. Including it
+  here means the currency dropdown works immediately after deployment,
+  with no manual authoring step required on any environment.
+-->
+<jcr:root xmlns:jcr="http://www.jcp.org/jcr/1.0" xmlns:cq="http://www.day.com/jcr/cq/1.0"
+    jcr:primaryType="cq:Page">
+    <jcr:content
+        jcr:primaryType="nt:unstructured"
+        jcr:title="Currencies"
+        sling:resourceType="acs-commons/components/utilities/genericlists/list"
+        xmlns:sling="http://sling.apache.org/jcr/sling/1.0">
+        <list jcr:primaryType="nt:unstructured">
+            <item0 jcr:primaryType="nt:unstructured" title="US Dollar" value="USD"/>
+            <item1 jcr:primaryType="nt:unstructured" title="Euro" value="EUR"/>
+            <item2 jcr:primaryType="nt:unstructured" title="British Pound" value="GBP"/>
+            <item3 jcr:primaryType="nt:unstructured" title="Indian Rupee" value="INR"/>
+            <item4 jcr:primaryType="nt:unstructured" title="UAE Dirham" value="AED"/>
+        </list>
+    </jcr:content>
+</jcr:root>

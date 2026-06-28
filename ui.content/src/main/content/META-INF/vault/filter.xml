@@ -8,5 +8,6 @@
     </filter>
     <filter root="/content/dam/sibi-aem-one/asset.jpg" mode="merge"/>
     <filter root="/content/experience-fragments/sibi-aem-one" mode="merge"/>
+    <filter root="/etc/acs-commons/lists/currencies" mode="merge"/>
     <filter root="/var/commerce/products/sibi-aem-one-default" mode="merge"/>
 </workspaceFilter>
