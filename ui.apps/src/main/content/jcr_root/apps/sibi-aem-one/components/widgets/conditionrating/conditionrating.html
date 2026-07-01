@@ -1,0 +1,15 @@
+<sly data-sly-use.field="com.adobe.granite.ui.components.Field"
+     data-sly-use.clientLibs="/libs/granite/ui/components/coral/foundation/clientlibs.html"
+     data-sly-call="${clientLibs.css @ categories='sibi-aem-one.conditionrating'}"/>
+
+<!--
+  A real <input type="hidden"> is what the Coral dialog actually submits.
+  The visible stars below are pure UI sugar that updates this input's value.
+-->
+<div class="sibi-ConditionRating" data-foundation-validation="sibi.conditionrating">
+    <input type="hidden" name="${field.name}" value="${properties.value @ context='attribute'}"
+           class="sibi-ConditionRating-input"/>
+    <div class="sibi-ConditionRating-stars" data-max="5"></div>
+</div>
+
+<sly data-sly-call="${clientLibs.js @ categories='sibi-aem-one.conditionrating'}"/>

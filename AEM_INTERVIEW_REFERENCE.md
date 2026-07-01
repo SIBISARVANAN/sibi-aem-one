@@ -2339,3 +2339,278 @@ No. If the actual business action (publishing) already succeeded, a notification
 | Connection pooling | Reusing already-open TCP connections instead of paying handshake cost per request; `PoolingHttpClientConnectionManager` caps total and per-route connections. |
 | `ConcurrentHashMap` | Thread-safe map allowing concurrent reads/writes without external `synchronized` blocks — required whenever a singleton OSGi service's field is touched by multiple concurrent request threads. |
 | Circular reference (OSGi) | Two components each holding a runtime `@Reference` to a service the other provides, forming a dependency loop. A nested `@interface Config` inside a component is metadata read at build/activation time — it is not a service reference and cannot cause this. |
+
+---
+
+## 23. REST APIs & GraphQL in AEM
+
+### REST — Multiple Layers, Not One API
+
+| Layer | How it works | Code required? |
+|---|---|---|
+| Sling Default GET (`.json`, `.1.json`, `.infinity.json`, `.tidy.json`) | Any JCR resource is automatically renderable as JSON via extension/selector | None |
+| Sling Model Exporter (`.model.json`) | `@Exporter(name="jackson", extensions="json")` on a Sling Model | Annotation only |
+| Custom Sling Servlet | `@SlingServletResourceTypes` + `extensions="json"` | Full servlet |
+| Sling POST Servlet | Writes to JCR via form params + `:operation` (create/copy/move/delete/checkin/checkout) | None — built in |
+| QueryBuilder JSON | `/bin/querybuilder.json?...` | None — usually wrapped in a custom servlet for security |
+
+```bash
+# Sling POST Servlet — write to JCR with zero custom code
+curl -u admin:admin -F"jcr:primaryType=nt:unstructured" -F"title=Hello" \
+     http://localhost:4502/content/mysite/en/newnode
+
+curl -u admin:admin -F":operation=delete" http://localhost:4502/content/mysite/en/oldnode
+```
+
+```java
+// Sling Model Exporter — the most common "build a REST API" pattern
+@Model(adaptables = Resource.class, adapters = Product.class, resourceType = "...")
+@Exporter(name = "jackson", extensions = "json", selector = "model")
+public class ProductImpl implements Product { ... }
+// GET /content/.../products/shirt.model.json
+```
+
+**Key intricacies:**
+- Selector + extension combo drives Sling's servlet resolution chain — `.model.json` and `.json` hit completely different code paths.
+- `.infinity.json` can leak internal/ACL nodes — restrict via `DefaultGetServlet` config or Dispatcher rules in production.
+- No built-in API versioning — must build your own convention (e.g. `/api/v1/...` resourceTypes).
+- JSON endpoints are NOT cached by Dispatcher by default (often explicitly denied) — must opt in and consider cache-poisoning risk for personalised data.
+- Cross-domain frontends need `org.apache.sling.cors.impl.CrossOriginFilter` configured, or browsers block the calls.
+
+### GraphQL — Headless Content Fragment Delivery ONLY
+
+**Critical distinction:** AEM's GraphQL API is scoped specifically to **Content Fragments**, not arbitrary pages/components — unlike REST, which can expose any resource.
+
+**Workflow:** Content Fragment Model (schema, under `/conf/.../cfm/models`) → actual Content Fragments authored in DAM → AEM **auto-generates** the GraphQL schema (one type per model) → query via an endpoint configured in *Tools → General → GraphQL*.
+
+```graphql
+# Ad-hoc POST query — fine in dev, DISABLED by default in production/AEMaaCS (DoS risk)
+{ articleModelList { items { title author { name } } } }
+```
+
+```
+# Persisted Query (GET) — production-recommended, Dispatcher/CDN-cacheable
+GET /content/_cq_graphql/mysite/endpoint.json/mysite/getArticleByPath;articlePath=/content/dam/mysite/articles/my-article
+```
+
+**Why persisted queries matter:** Ad-hoc POST queries let a client construct arbitrarily expensive/deep queries at runtime; persisted queries are invoked via deterministic GET URLs, which Dispatcher/CDN can actually cache — the single biggest practical reason teams adopt them.
+
+| Fact | Detail |
+|---|---|
+| Read-only | No mutations — AEM author UI remains the only way to create/edit content |
+| Nested references resolved in one call | A model field referencing another model is resolved server-side — the core advantage over REST's N+1 calls |
+| Schema is derived, not independently versioned | Renaming a CF Model field renames the GraphQL field — no separate schema-versioning layer |
+| Endpoint is scoped per `/conf` configuration | Not global to the instance |
+
+**Interview Q: When would you choose REST over GraphQL in AEM, or vice versa?**  
+REST for arbitrary resources, writes, or quick exposure of existing Sling Models. GraphQL specifically when delivering Content Fragments headlessly to SPAs/mobile apps where avoiding over-fetching and resolving nested references in one round-trip matters, and where persisted-query cacheability is valuable.
+
+---
+
+## 24. Oak & JCR Internals, TarMK, MongoMK
+
+### JCR vs Oak
+
+JCR (JSR-170/283) is a **specification only** — a contract for content-as-a-tree (nodes/properties, versioning, search, ACLs, observation). **Apache Jackrabbit Oak** is the actual engine implementing that contract, and what AEM 6.x/AEMaaCS runs on.
+
+### Oak's Core Architecture — the NodeStore abstraction
+
+```
+JCR API → Oak Core (query engine, security, observation)
+              → NodeStore (pluggable storage)
+                  ├── SegmentNodeStore (= TarMK)
+                  └── DocumentNodeStore (= MongoMK / RDB)
+```
+
+This separation is *why* the same AEM application code runs unmodified on completely different storage backends.
+
+### MVCC — Concurrency Without Locking
+
+Oak never locks for reads. Every commit produces a new **immutable NodeState** — like a Git commit: the new state mostly shares structure with the previous one (structural sharing); only changed nodes get new records. Readers always see one consistent point-in-time snapshot, even during concurrent writes elsewhere.
+
+### TarMK (Segment Node Store)
+
+- Default engine for most single-instance/on-prem deployments; conceptually the basis for AEMaaCS storage too.
+- Data is written as **segments** (~256KB binary chunks: Node/Property/Template/Blob/List/Map records), packed append-only into `.tar` files.
+- A **Journal** file points to the current head revision.
+- **Git-like commits:** a save writes only new/changed records; the new root mostly points to unchanged old segments.
+- **Compaction** (Online Revision Cleanup) reclaims disk by removing segments no longer referenced by any retained revision — necessary because old superseded data is never deleted at write time.
+
+| Compaction type | Behaviour |
+|---|---|
+| Tail compaction (default) | Incremental, online, no maintenance window |
+| Full compaction | Thorough rewrite; historically needed downtime, modern Oak versions handle more of this online |
+
+- Performance depends heavily on memory-mapped file access plus in-process caches (Segment/String/Node Cache) — undersized caches are a common root cause of slow instances.
+- **Clustering limitation:** TarMK is local to one JVM's filesystem. **Cold Standby** provides one master + continuously-synced standby instances for DR/read-scaling — active-passive, not true multi-master.
+
+### MongoMK (Document Node Store)
+
+- Solves concurrent multi-author-instance writes by storing each JCR node as one MongoDB document.
+- Mongo's own replication/sharding lets multiple AEM JVMs (each a distinct `clusterId`) read/write the same backing store concurrently.
+- **Cluster coordination:** each node writes periodic heartbeats/leases to a `clusterNodes` collection; a missed lease triggers **recovery** to repair half-committed changes from a crashed node.
+- Concurrent conflicting writes from different nodes can surface as `OakState0001: Unable to merge changes` — application code must handle retries.
+- Every cache miss is a network round-trip to Mongo — Oak layers a `NodeCache`/diff cache plus an optional local **Persistent Cache** (TarMK-format file) specifically to reduce Mongo calls.
+
+> **Interview-critical fact:** AEM as a Cloud Service does **NOT** use MongoMK. AEMaaCS reverted to a Segment Store approach backed by cloud blob storage (Azure Blob/AWS S3) instead of local disk — Adobe judged a separate Mongo cluster too much operational overhead for a cloud-native, auto-scaling architecture. MongoMK is primarily relevant to **on-prem/AMS AEM 6.x author clustering** today.
+
+### Oak Indexing
+
+- **Property indexes**: updated synchronously, inside the same commit — always immediately consistent.
+- **Lucene indexes** (full-text, sorting, complex queries): updated asynchronously on a background "async" lane (typically every few seconds) — why newly-created content can briefly not appear in search results.
+
+### Common Interview Questions — Oak/JCR
+
+**Q: Why can't TarMK support multiple AEM author instances writing concurrently, but MongoMK can?**  
+TarMK's segment store is local to one JVM's filesystem with a single Journal head — there's no mechanism for two JVMs to coordinate writes to the same files. MongoMK delegates that coordination to MongoDB itself, which is designed for concurrent distributed access, plus Oak's own cluster lease/recovery mechanism.
+
+**Q: Why doesn't a newly published page show up immediately in search?**  
+Lucene indexes update asynchronously on a background lane, not within the triggering commit — there's a small, normal lag between content being saved and it being searchable.
+
+**Q: What replaced MongoMK in AEM as a Cloud Service?**  
+A Segment Store (TarMK-style) approach backed by cloud blob storage (Azure Blob/AWS S3), not local disk — chosen for lower operational overhead in a cloud-native, auto-scaling architecture.
+
+**Q: What is structural sharing in the context of Oak's MVCC model?**  
+When a new NodeState is created after a commit, it reuses references to all unchanged child nodes from the previous state and only creates new records for what actually changed — directly analogous to how a Git commit mostly points to unchanged blobs/trees rather than copying the whole repository.
+
+### Layman terms Explanation
+
+Think of it like a citywide records-keeping system.
+
+JCR is just the rulebook — a standard saying "all content must be organized as a tree of folders and files, with version history, search, and permissions." It doesn't say which actual building stores anything.
+
+Oak is the real records office that follows that rulebook — the staff and machinery that actually file things, look things up, and enforce the rules.
+
+Behind Oak's front desk sits a swappable storage room — that's the NodeStore abstraction. The person at the front desk doesn't care whether the storage room is a back-office filing cabinet (TarMK) or a remote shared warehouse (MongoMK) — the experience at the counter is identical either way. This swappability is why the same AEM code runs unmodified on totally different storage backends.
+
+MVCC (immutable NodeState) works like a smart photocopier: every time someone edits a page in a book, it doesn't scribble on the original — it photocopies a "new version" of the book, but cleverly reuses every unchanged page from before and only freshly prints the one page that actually changed. Anyone reading the book while someone else is mid-edit always sees a complete, consistent old copy — never a half-changed mess.
+
+TarMK is that back-office filing cabinet: papers (segments) get stapled into folders (tar files) and slotted into the back of the drawer — nothing already filed ever gets edited in place, only added to. Over time, old superseded paper versions pile up uselessly — that's exactly why compaction exists: it's the cleanup crew that periodically clears out old, no-longer-needed copies so the cabinet doesn't grow forever.
+Because that cabinet physically lives in one room, only one office can write into it at a time. Cold Standby is like a second back-office across town that gets a photocopy of every new folder the moment it's filed — ready to take over instantly if the first room floods — but it's not simultaneously taking its own walk-in clients.
+
+MongoMK solves the "only one office" problem differently: instead of one back-room, imagine many branch offices across the city, all plugged into the same shared, already-distributed central filing service (MongoDB) that knows how to handle multiple branches reading and writing into it at once. Each branch occasionally calls in (heartbeat/lease) to say "still open, still working" — and if a branch goes dark mid-task without warning, headquarters sends a crew to tidy up whatever paperwork it left half-finished (recovery). If two branches grab for the same file at the same instant, the system just tells one "someone beat you to it, try again" (conflict retry). Because every single lookup means a phone call to the central service, branches keep a personal photocopy of frequently-needed files on a side desk (persistent cache) so they aren't calling headquarters for everything.
+
+AEM as a Cloud Service went a different way: rather than running a whole city of Mongo branch offices (too much overhead to operate), it went back to the single-filing-cabinet style (TarMK), just relocated that cabinet into a shared off-site cloud storage unit (Azure Blob/S3) instead of a local back room — simpler to run, while still getting cloud scale.
+
+Finally — a brand-new book on the shelf gets an instant index card filed the second it arrives (property index), but the big master search catalog (Lucene index) is only rebuilt every few seconds in the background — which is exactly why something you just published can take a few seconds to actually show up in search.
+
+---
+
+## 25. Sling Request Processing Pipeline
+
+This is the internal request lifecycle inside AEM/Sling — distinct from the earlier Browser→CDN→Dispatcher flow, which is what happens before the request even reaches this pipeline.
+
+```
+HTTP request arrives at the Sling Engine (on Jetty/Felix HTTP Whiteboard)
+│
+▼
+1. Authentication — SlingAuthenticator picks a handler
+   (Form/Basic/Token/SSO) → resolves a Session/ResourceResolver
+   (or falls back to anonymous)
+   │
+   ▼
+2. Resource Resolution — ResourceResolver.resolve(path)
+   Strips selectors/extension/suffix, walks UP the path until
+   it finds an actual existing resource; remainder becomes
+   the request "suffix". Vanity URLs / sling:redirect / /etc/map
+   mappings are also applied at this stage.
+   │
+   ▼
+3. Servlet/Script Resolution
+   Resource's sling:resourceType (+ resourceSuperType chain)
+   combined with selectors + extension + HTTP method →
+   picks the MOST SPECIFIC matching script/servlet under
+   /apps or /libs.
+   │
+   ▼
+4. REQUEST-scope Filter Chain (pre-processing)
+   Filters run in service.ranking order, each calling
+   chain.doFilter() to proceed
+   │
+   ▼
+5. Component Rendering (HTL/JSP/Servlet executes)
+   Nested sling:include / sling:resource calls trigger
+   steps 2-4 AGAIN recursively for each child component —
+   page rendering is really a TREE of nested Sling requests
+   │
+   ▼
+6. Filter post-processing (response unwinds back through
+   the same filters, in reverse, after chain.doFilter() returns)
+   │
+   ▼
+   Response sent to client
+```
+
+### Two design facts worth knowing well:
+Resources, not JCR nodes, are the real abstraction. Sling doesn't hard-wire itself to JCR. It talks to a `ResourceProvider` SPI — JCR is just one provider (`JcrResourceProvider`). Other providers can mount virtual resources from anywhere (an external API, a config map, OSGi bundle resources) into the same resource tree at a chosen mount point. 
+This is why the same Sling Model/HTL code can render content regardless of whether it actually came from JCR — the rest of the stack only ever talks to "Resources," never to raw JCR.
+The /apps over /libs overlay mechanism (Resource Merger) is how customisations of Adobe's out-of-the-box components work without ever touching /libs directly: Sling's script/servlet resolution checks /apps first, falls back to /libs if nothing's there, and the Resource Merger can even merge node properties from both locations (not just whole resources) for partial overlay scenarios — this underlies the well-known "never modify /libs, always override in /apps" rule.
+
+## 26. Custom Widget, Content Fragment & Adobe Launch — Applied Scenario
+
+One connected scenario across all three previously-missing topics: extending a Property Listing component with (12) a custom star-rating dialog widget, (13) a Content Fragment reference, and (14) Adobe Launch tracking.
+
+### Granite UI Custom Widget — Property Condition Rating
+
+```xml
+<!-- Component extends the base form field so it inherits label/description/validation slots -->
+<jcr:root jcr:primaryType="cq:Component" jcr:title="Condition Star Rating Field"
+    extends="granite/ui/components/coral/foundation/form/field"/>
+```
+
+```javascript
+$stars.on("click", ".sibi-ConditionRating-star", function () {
+    var value = $(this).data("value");
+    $input.val(value).trigger("change"); // mandatory — dialog dirty-tracking listens for this
+    render(value);
+});
+```
+
+**Interview Q: Why must a custom Granite widget use a hidden `<input>` rather than a custom data attribute?**  
+Coral's dialog submit logic serialises standard form elements (`input`/`select`/`textarea` with a `name`) inside the dialog form — it has no concept of arbitrary data attributes. The hidden input bridges a custom visual widget to AEM's unmodified save mechanism.
+
+**Interview Q: What does `extends` do on a custom Granite component's `.content.xml`?**  
+Inherits rendering behaviour from a base component — here, the base form field's label/description/validation-message slots — so a custom widget doesn't need to reimplement that scaffolding.
+
+### Content Fragment API — Neighborhood Guide Reference
+
+```java
+ContentFragment fragment = resource.adaptTo(ContentFragment.class);
+ContentElement element = fragment.getElement("walkabilityScore");
+Integer score = element.getValue(Integer.class);  // structured types use getValue(Class)
+String summary = fragment.getElement("summary").getContent(); // plain text uses getContent()
+```
+
+**Interview Q: Why does `NeighborhoodGuide` take a `Resource` via constructor instead of using `@Self`/field injection?**  
+Because it's adapted from the FRAGMENT's own resource path, not the calling component's resource — the caller must resolve `neighborhoodFragmentPath` to a `Resource` first, then explicitly construct the model from it. Sling Models with non-default constructors are instantiated directly, not via `resource.adaptTo()`.
+
+**Interview Q: Why model neighborhood data as a Content Fragment instead of plain text fields on the property page?**  
+Reuse — the same neighborhood guide fragment is referenced by every property listing in that area; updating it once updates every page referencing it. A plain text field would require duplicating and separately maintaining that content on every property page.
+
+### Adobe Launch / Client Context
+
+```java
+// Compose with the existing model — never re-read the same JCR properties twice
+property = request.adaptTo(PropertyListing.class);
+propertyId = resource.getName();
+```
+
+```html
+<script>
+    window.adobeDataLayer = window.adobeDataLayer || [];
+    window.adobeDataLayer.push(${dataLayer.dataLayerJson @ context='unsafe'});
+</script>
+<button class="property-listing__rsvp-button" data-property-id="${dataLayer.propertyId}">RSVP</button>
+```
+
+```javascript
+// Click event reads the ID from the attribute Java rendered — never invents it in JS
+window.adobeDataLayer.push({ event: "openHouseRsvpClick",
+    property: { propertyId: button.getAttribute("data-property-id") } });
+```
+
+**Interview Q: Why is `context='unsafe'` acceptable here when it's normally forbidden for user input?**  
+The JSON is fully server-generated from typed Java fields (price, status, property type) — never raw unescaped author free-text. The rule is "never use unsafe on untrusted input," not "never use unsafe at all." A field that echoes free-text directly into this JSON would need sanitisation first.
+
+**Interview Q: Why is the property ID rendered as a `data-*` attribute instead of being looked up again in JavaScript?**  
+Single source of truth — the Java model is the only place that decides what the ID actually IS; JavaScript only decides WHEN to fire an event using that already-defined value. This avoids a markup/JS refactor silently breaking analytics with no compiler error to catch it (the same DOM-scraping fragility problem discussed earlier in Section 14's conceptual explanation).

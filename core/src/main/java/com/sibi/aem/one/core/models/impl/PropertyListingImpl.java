@@ -2,6 +2,7 @@ package com.sibi.aem.one.core.models.impl;
 
 import com.day.cq.tagging.TagManager;
 import com.sibi.aem.one.core.models.GalleryImage;
+import com.sibi.aem.one.core.models.NeighborhoodGuide;
 import com.sibi.aem.one.core.models.PropertyListing;
 import com.sibi.aem.one.core.models.Room;
 import org.apache.commons.lang3.StringUtils;
@@ -60,7 +61,11 @@ public class PropertyListingImpl implements PropertyListing {
     @ValueMapValue
     private String themeColor;
     @ValueMapValue
+    private int propertyCondition;
+    @ValueMapValue
     private String propertyType;
+    @ValueMapValue
+    private String neighbourhoodGuide;
     @ValueMapValue
     private String locationPagePath;
     @ValueMapValue
@@ -107,6 +112,8 @@ public class PropertyListingImpl implements PropertyListing {
     private String formattedPrice;
     private boolean openHouseRangeValid;
 
+    private NeighborhoodGuide neighborhoodGuide;
+
     @PostConstruct
     protected void init() {
         adaptGallery();
@@ -114,6 +121,7 @@ public class PropertyListingImpl implements PropertyListing {
         resolveAmenityNames();
         buildFormattedPrice();
         validateOpenHouseRange();
+        resolveNeighborhoodGuide();
     }
 
     private void adaptGallery() {
@@ -203,6 +211,34 @@ public class PropertyListingImpl implements PropertyListing {
         }
     }
 
+    private void resolveNeighborhoodGuide() {
+        if (StringUtils.isBlank(neighbourhoodGuide)) {
+            // No fragment linked — not an error, just optional
+            return;
+        }
+
+        Resource fragmentResource = currentResource.getResourceResolver()
+                .getResource(neighbourhoodGuide);
+
+        if (fragmentResource == null) {
+            LOG.warn("Neighborhood fragment path '{}' resolved to null for resource '{}'",
+                    neighbourhoodGuide, currentResource.getPath());
+            return;
+        }
+
+        // NeighborhoodGuide takes a Resource constructor arg, so it CANNOT use
+        // resource.adaptTo(NeighborhoodGuide.class) — Sling only does adaptTo()
+        // for models with zero-arg constructors (or @Inject-only field injection).
+        // Direct instantiation is the correct approach here.
+        neighborhoodGuide = new NeighborhoodGuide(fragmentResource);
+
+        if (!neighborhoodGuide.isValid()) {
+            LOG.warn("Path '{}' did not resolve to a valid Content Fragment",
+                    neighbourhoodGuide);
+            neighborhoodGuide = null;
+        }
+    }
+
     @Override
     public String getTitle() {
         return title;
@@ -246,6 +282,11 @@ public class PropertyListingImpl implements PropertyListing {
     @Override
     public String getThemeColor() {
         return themeColor;
+    }
+
+    @Override
+    public int getPropertyCondition() {
+        return propertyCondition;
     }
 
     @Override
@@ -321,5 +362,10 @@ public class PropertyListingImpl implements PropertyListing {
     @Override
     public boolean isSearchVisible() {
         return searchVisible;
+    }
+
+    @Override
+    public NeighborhoodGuide getNeighborhoodGuide() {
+        return neighborhoodGuide;
     }
 }

@@ -1,112 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Javadoc — sibi-aem-one</title>
-<style>
-  :root {
-    --primary: #1a5276;
-    --accent: #2e86c1;
-    --light: #d6eaf8;
-    --bg: #f9fbfd;
-    --code-bg: #1e2330;
-    --code-fg: #e8eaf6;
-    --border: #cce0f0;
-    --text: #1a252f;
-    --muted: #566573;
-    --tag-bg: #eaf4fb;
-    --tag-border: #aed6f1;
-    --sidebar-w: 280px;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Javadoc — sibi-aem-one</title>
+  <style>
+    :root {
+      --primary: #1a5276;
+      --accent: #2e86c1;
+      --light: #d6eaf8;
+      --bg: #f9fbfd;
+      --code-bg: #1e2330;
+      --code-fg: #e8eaf6;
+      --border: #cce0f0;
+      --text: #1a252f;
+      --muted: #566573;
+      --tag-bg: #eaf4fb;
+      --tag-border: #aed6f1;
+      --sidebar-w: 280px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
 
-  /* Sidebar */
-  #sidebar {
-    width: var(--sidebar-w); min-width: var(--sidebar-w);
-    background: var(--primary); color: #fff;
-    padding: 0; overflow-y: auto; position: sticky; top: 0; height: 100vh;
-  }
-  #sidebar .brand { padding: 20px 18px 14px; border-bottom: 1px solid rgba(255,255,255,.15); }
-  #sidebar .brand h2 { font-size: 15px; font-weight: 700; letter-spacing: .5px; }
-  #sidebar .brand p { font-size: 11px; opacity: .7; margin-top: 4px; }
-  #sidebar ul { list-style: none; padding: 10px 0; }
-  #sidebar ul li a {
-    display: block; padding: 7px 18px; font-size: 12.5px; color: rgba(255,255,255,.82);
-    text-decoration: none; transition: background .15s;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  #sidebar ul li a:hover { background: rgba(255,255,255,.12); color: #fff; }
-  #sidebar ul li a.active { background: var(--accent); color: #fff; font-weight: 600; }
-  #sidebar .section-header {
-    padding: 10px 18px 4px; font-size: 10px; text-transform: uppercase;
-    letter-spacing: 1.2px; color: rgba(255,255,255,.45); font-weight: 600;
-  }
+    /* Sidebar */
+    #sidebar {
+      width: var(--sidebar-w); min-width: var(--sidebar-w);
+      background: var(--primary); color: #fff;
+      padding: 0; overflow-y: auto; position: sticky; top: 0; height: 100vh;
+    }
+    #sidebar .brand { padding: 20px 18px 14px; border-bottom: 1px solid rgba(255,255,255,.15); }
+    #sidebar .brand h2 { font-size: 15px; font-weight: 700; letter-spacing: .5px; }
+    #sidebar .brand p { font-size: 11px; opacity: .7; margin-top: 4px; }
+    #sidebar ul { list-style: none; padding: 10px 0; }
+    #sidebar ul li a {
+      display: block; padding: 7px 18px; font-size: 12.5px; color: rgba(255,255,255,.82);
+      text-decoration: none; transition: background .15s;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    #sidebar ul li a:hover { background: rgba(255,255,255,.12); color: #fff; }
+    #sidebar ul li a.active { background: var(--accent); color: #fff; font-weight: 600; }
+    #sidebar .section-header {
+      padding: 10px 18px 4px; font-size: 10px; text-transform: uppercase;
+      letter-spacing: 1.2px; color: rgba(255,255,255,.45); font-weight: 600;
+    }
 
-  /* Main */
-  #main { flex: 1; padding: 40px 48px; max-width: 1100px; }
-  #main h1 { font-size: 28px; color: var(--primary); margin-bottom: 6px; }
-  #main .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 36px; }
+    /* Main */
+    #main { flex: 1; padding: 40px 48px; max-width: 1100px; }
+    #main h1 { font-size: 28px; color: var(--primary); margin-bottom: 6px; }
+    #main .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 36px; }
 
-  /* Class sections */
-  .class-section {
-    background: #fff; border: 1px solid var(--border);
-    border-radius: 8px; margin-bottom: 32px; overflow: hidden;
-    scroll-margin-top: 30px;
-  }
-  .class-header {
-    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
-    padding: 16px 22px; display: flex; align-items: center; gap: 12px;
-  }
-  .class-header h2 { color: #fff; font-size: 18px; margin: 0; }
-  .class-header .badge {
-    background: rgba(255,255,255,.2); color: #fff;
-    font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: .5px;
-  }
-  .class-header .pkg { color: rgba(255,255,255,.65); font-size: 12px; margin-left: auto; font-style: italic; }
-  .class-body { padding: 22px 24px; }
+    /* Class sections */
+    .class-section {
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 8px; margin-bottom: 32px; overflow: hidden;
+      scroll-margin-top: 30px;
+    }
+    .class-header {
+      background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+      padding: 16px 22px; display: flex; align-items: center; gap: 12px;
+    }
+    .class-header h2 { color: #fff; font-size: 18px; margin: 0; }
+    .class-header .badge {
+      background: rgba(255,255,255,.2); color: #fff;
+      font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+    .class-header .pkg { color: rgba(255,255,255,.65); font-size: 12px; margin-left: auto; font-style: italic; }
+    .class-body { padding: 22px 24px; }
 
-  /* Description */
-  .class-desc { font-size: 14.5px; line-height: 1.75; color: var(--text); margin-bottom: 18px; }
+    /* Description */
+    .class-desc { font-size: 14.5px; line-height: 1.75; color: var(--text); margin-bottom: 18px; }
 
-  /* Meta grid */
-  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-  .meta-item { background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 6px; padding: 10px 14px; }
-  .meta-item .label { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; color: var(--accent); font-weight: 700; margin-bottom: 4px; }
-  .meta-item .value { font-size: 13px; color: var(--text); word-break: break-all; }
+    /* Meta grid */
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .meta-item { background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 6px; padding: 10px 14px; }
+    .meta-item .label { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; color: var(--accent); font-weight: 700; margin-bottom: 4px; }
+    .meta-item .value { font-size: 13px; color: var(--text); word-break: break-all; }
 
-  /* Sub-headings */
-  .class-body h3 { font-size: 14px; color: var(--primary); border-bottom: 2px solid var(--light); padding-bottom: 6px; margin: 22px 0 12px; text-transform: uppercase; letter-spacing: .5px; }
+    /* Sub-headings */
+    .class-body h3 { font-size: 14px; color: var(--primary); border-bottom: 2px solid var(--light); padding-bottom: 6px; margin: 22px 0 12px; text-transform: uppercase; letter-spacing: .5px; }
 
-  /* Field / Method tables */
-  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
-  th { background: var(--light); color: var(--primary); font-weight: 700; padding: 8px 12px; text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .5px; }
-  td { padding: 8px 12px; border-bottom: 1px solid #ecf4fb; vertical-align: top; line-height: 1.55; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: #f4faff; }
-  code { background: var(--code-bg); color: #82d2f5; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas','Courier New',monospace; font-size: 12px; }
+    /* Field / Method tables */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
+    th { background: var(--light); color: var(--primary); font-weight: 700; padding: 8px 12px; text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .5px; }
+    td { padding: 8px 12px; border-bottom: 1px solid #ecf4fb; vertical-align: top; line-height: 1.55; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f4faff; }
+    code { background: var(--code-bg); color: #82d2f5; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas','Courier New',monospace; font-size: 12px; }
 
-  /* Annotation chips */
-  .ann { display: inline-block; background: #fff3e0; border: 1px solid #ffcc80; color: #e65100; font-size: 11px; padding: 1px 7px; border-radius: 20px; margin: 2px 2px 2px 0; font-family: monospace; }
-  .ann.osgi { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
-  .ann.sling { background: #e3f2fd; border-color: #90caf9; color: #1565c0; }
-  .ann.jackson { background: #fce4ec; border-color: #f48fb1; color: #880e4f; }
+    /* Annotation chips */
+    .ann { display: inline-block; background: #fff3e0; border: 1px solid #ffcc80; color: #e65100; font-size: 11px; padding: 1px 7px; border-radius: 20px; margin: 2px 2px 2px 0; font-family: monospace; }
+    .ann.osgi { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
+    .ann.sling { background: #e3f2fd; border-color: #90caf9; color: #1565c0; }
+    .ann.jackson { background: #fce4ec; border-color: #f48fb1; color: #880e4f; }
 
-  /* Note boxes */
-  .note { background: #fff8e1; border-left: 4px solid #fbc02d; border-radius: 4px; padding: 10px 14px; font-size: 13px; margin: 12px 0; line-height: 1.6; }
-  .note.info { background: #e3f2fd; border-color: var(--accent); }
-  .note.warn { background: #fbe9e7; border-color: #e53935; }
+    /* Note boxes */
+    .note { background: #fff8e1; border-left: 4px solid #fbc02d; border-radius: 4px; padding: 10px 14px; font-size: 13px; margin: 12px 0; line-height: 1.6; }
+    .note.info { background: #e3f2fd; border-color: var(--accent); }
+    .note.warn { background: #fbe9e7; border-color: #e53935; }
 
-  /* TOC page */
-  .toc-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-top: 20px; }
-  .toc-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; text-decoration: none; color: var(--text); transition: box-shadow .2s; }
-  .toc-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); transform: translateY(-1px); }
-  .toc-card .name { font-weight: 700; font-size: 14px; color: var(--primary); }
-  .toc-card .pkg-small { font-size: 11px; color: var(--muted); margin-top: 3px; }
-  .toc-card .type-badge { font-size: 10px; background: var(--light); color: var(--accent); padding: 1px 7px; border-radius: 10px; margin-top: 6px; display: inline-block; font-weight: 600; }
-</style>
+    /* TOC page */
+    .toc-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-top: 20px; }
+    .toc-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; text-decoration: none; color: var(--text); transition: box-shadow .2s; }
+    .toc-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); transform: translateY(-1px); }
+    .toc-card .name { font-weight: 700; font-size: 14px; color: var(--primary); }
+    .toc-card .pkg-small { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .toc-card .type-badge { font-size: 10px; background: var(--light); color: var(--accent); padding: 1px 7px; border-radius: 10px; margin-top: 6px; display: inline-block; font-weight: 600; }
+  </style>
 </head>
 <body>
 
@@ -195,6 +195,10 @@
     <li><a href="#ProductActivationListener">ProductActivationListener</a></li>
     <li><a href="#ProductPublishProcess">ProductPublishProcess</a></li>
     <li><a href="#ApprovalNotificationProcess">ApprovalNotificationProcess</a></li>
+    <div class="section-header">Custom Widget / CF / Launch (Added)</div>
+    <li><a href="#ConditionRatingWidget">ConditionRatingWidget</a></li>
+    <li><a href="#NeighborhoodGuide">NeighborhoodGuide</a></li>
+    <li><a href="#PropertyDataLayerModel">PropertyDataLayerModel</a></li>
   </ul>
 </nav>
 
@@ -1187,6 +1191,28 @@
     <div class="class-header"><span class="badge">Workflow Process</span><h2>ApprovalNotificationProcess</h2><span class="pkg">workflows.product</span></div>
     <div class="class-body">
       <p class="class-desc">Fills the "missing notification" gap. Reads the <code>publishStatus</code> written by <code>ProductPublishProcess</code> and emails the workflow initiator success/failure using AEM's native <code>com.day.cq.mailer.MessageGatewayService</code> (<code>getGateway(HtmlEmail.class).send()</code>) — not the non-standard <code>org.apache.sling.commons.mail.MailService</code>. Deliberately swallows <code>EmailException</code> rather than throwing <code>WorkflowException</code>, since a failed notification must not mark an already-successful publish as a failed workflow.</p>
+    </div>
+  </section>
+
+  <!-- ===== CUSTOM WIDGET / CONTENT FRAGMENT / ADOBE LAUNCH (ADDED) ===== -->
+  <section id="ConditionRatingWidget" class="class-section">
+    <div class="class-header"><span class="badge">Custom Granite UI Widget</span><h2>ConditionRatingWidget</h2><span class="pkg">ui.apps/.../components/widgets/conditionrating</span></div>
+    <div class="class-body">
+      <p class="class-desc">5-star "Property Condition" custom Touch UI dialog field — fills the "Granite UI custom widget" gap. The component's <code>.content.xml</code> uses <code>extends="granite/ui/components/coral/foundation/form/field"</code> to inherit label/description/validation slots. A real <code>&lt;input type="hidden"&gt;</code> in the HTL markup carries the value Coral's dialog submit logic actually reads; the visible star icons are pure UI on top, rendered and click-handled by a small clientlib JS that calls <code>.trigger("change")</code> on every update — mandatory, since Coral's dirty-state tracking and submit serialization both listen for native <code>change</code> events. Skipping it means the widget looks correct on screen but silently fails to persist.</p>
+    </div>
+  </section>
+
+  <section id="NeighborhoodGuide" class="class-section">
+    <div class="class-header"><span class="badge">Sling Model (Content Fragment)</span><h2>NeighborhoodGuide</h2><span class="pkg">com.sibi.aem.one.core.models.propertylisting</span></div>
+    <div class="class-body">
+      <p class="class-desc">Wraps a "Neighborhood Guide" Content Fragment referenced from a property listing via a pathfield — fills the "Content Fragment API" gap. Adapted from the <strong>fragment's own resource path</strong>, not the property listing's resource: the caller resolves <code>neighborhoodFragmentPath</code> to a <code>Resource</code> first, then constructs this model directly from it (it has a non-default constructor, so it is never created via plain <code>adaptTo()</code>). Reads structured fields via <code>ContentElement.getValue(Class)</code> (numbers, multi-value text) versus <code>getContent()</code> for plain text — mixing these up is a common bug source. Demonstrates fragment reuse: the same neighborhood fragment is referenced by every listing in that area instead of duplicating the text per page.</p>
+    </div>
+  </section>
+
+  <section id="PropertyDataLayerModel" class="class-section">
+    <div class="class-header"><span class="badge">Sling Model</span><h2>PropertyDataLayerModel</h2><span class="pkg">models.propertylisting</span></div>
+    <div class="class-body">
+      <p class="class-desc">Produces the Adobe Launch / data-layer JSON payload for a property listing page view — fills the "Adobe Launch / Client Context" gap. Composes with the existing <code>PropertyListing</code> model rather than re-reading the same JCR properties a second time. Page-load facts (price, status, propertyType) are rendered server-side here; the separate "RSVP for Open House" CLICK event is fired client-side in a companion clientlib JS, which reads the property ID from a <code>data-property-id</code> attribute this model rendered into the markup — never inventing or re-deriving that value in JavaScript, keeping this model the single source of truth for what the tracked data actually is.</p>
     </div>
   </section>
 

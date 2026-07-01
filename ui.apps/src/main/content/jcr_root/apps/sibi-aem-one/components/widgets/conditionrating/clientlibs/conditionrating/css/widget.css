@@ -1,0 +1,4 @@
+.sibi-ConditionRating-stars { font-size: 24px; cursor: pointer; color: #ccc; }
+.sibi-ConditionRating-star { padding: 0 2px; transition: color 0.15s; }
+.sibi-ConditionRating-star.is-filled { color: #f5a623; }
+.sibi-ConditionRating-star:hover { color: #f5a623; }

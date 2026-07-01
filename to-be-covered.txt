@@ -1,0 +1,21 @@
+Looking at everything covered across your repo and our conversations — OSGi patterns, Sling Models (including child resource + custom serializers now), schedulers/jobs, QueryBuilder, workflows with replication/notification, security/service users, CAConfig, AEMaaCS, unit testing, REST/GraphQL, Oak/JCR internals — here's what's genuinely still missing for the senior/lead bar, beyond the three you just asked about:
+Architecture & systems-level
+
+Adaptive Forms / Communities — niche, but some enterprise interviews probe whether you've touched them at all, even superficially
+Sling Pipes / migration tooling — bulk content transformation framework, increasingly asked about for AEMaaCS migration projects
+Apache Sling Feature Model — how AEMaaCS images are actually composed under the hood (relevant if you ever discuss custom SDK images or Cloud Manager pipeline internals)
+Performance profiling tools — actual hands-on familiarity with crx-quickstart/logs, heap dump analysis (Eclipse MAT), and thread dump reading — senior interviews often present a "here's a thread dump, what's wrong" scenario
+
+Security
+
+CSRF token handling in custom forms/servlets (com.adobe.granite.csrf.CSRFTokenManager) — a very commonly asked practical security question for any project with custom POST endpoints
+XSS protection APIs beyond HTL context — org.apache.sling.xss.XSSAPI for sanitizing values used outside HTL (e.g., in custom Java string building)
+
+Cloud/DevOps
+
+Cloud Manager pipeline customization — custom pipeline steps, non-production pipelines, code quality gate configuration
+Dispatcher SDK validation tooling (dispatcher-packer / local Dispatcher validation before deployment) — increasingly a hard requirement in AEMaaCS-only teams
+
+Headless/Modern
+
+The three topics you just flagged — Granite UI custom widgets, Content Fragment API, and Client Context/Adobe Launch — are genuinely the right next batch; once those are covered, your portfolio is close to comprehensive for a senior generalist AEM role.

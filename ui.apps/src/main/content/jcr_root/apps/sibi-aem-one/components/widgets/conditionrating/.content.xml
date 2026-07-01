@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Custom Granite UI field: 5-star "Property Condition" rating widget.
+  extends the base form/field component so it inherits label/description/
+  validation slots that Granite's dialog rendering expects.
+-->
+<jcr:root xmlns:jcr="http://www.jcp.org/jcr/1.0" xmlns:cq="http://www.day.com/jcr/cq/1.0"
+    jcr:primaryType="cq:Component"
+    jcr:title="Condition Star Rating Field"
+    extends="granite/ui/components/coral/foundation/form/field"/>

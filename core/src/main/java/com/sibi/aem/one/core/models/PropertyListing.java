@@ -35,6 +35,8 @@ public interface PropertyListing {
 
     String getThemeColor();
 
+    int getPropertyCondition();
+
     String getPropertyType();
 
     /**
@@ -81,4 +83,10 @@ public interface PropertyListing {
     boolean isOpenHouseRangeValid();
 
     boolean isSearchVisible();
+
+    /**
+     * @return the resolved Neighborhood Guide Content Fragment, or null if
+     *         no fragment path was authored or the path is invalid.
+     */
+    NeighborhoodGuide getNeighborhoodGuide();
 }
