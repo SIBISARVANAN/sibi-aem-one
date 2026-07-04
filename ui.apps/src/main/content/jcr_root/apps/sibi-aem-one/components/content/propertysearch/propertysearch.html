@@ -1,0 +1,210 @@
+<!--/* Property Search Component HTL
+       Uses PropertySearchModel for all data — no business logic in HTL.
+       The model reads dialog-authored config AND request parameters.
+*/-->
+<sly data-sly-use.model="com.sibi.aem.one.core.models.search.PropertySearchModel"
+     data-sly-use.clientLib="/libs/granite/sightly/templates/clientlib.html"/>
+
+<sly data-sly-call="${clientLib.css @ categories='sibi-aem-one.propertysearch'}"/>
+
+<div class="property-search cmp-propertysearch">
+
+    <!--/* ── SEARCH FORM ─────────────────────────────────────────────── */-->
+    <form class="cmp-propertysearch__form" method="GET" action="">
+
+        <div class="cmp-propertysearch__input-row">
+            <input type="text"
+                   class="cmp-propertysearch__input"
+                   name="q"
+                   value="${model.currentQuery @ context='attribute'}"
+                   placeholder="${model.placeholderText @ context='attribute'}"/>
+            <button type="submit" class="cmp-propertysearch__submit">Search</button>
+        </div>
+
+        <!--/* ── FILTERS (shown/hidden by dialog config) ─────────────── */-->
+        <div class="cmp-propertysearch__filters">
+
+            <!--/* Property Type filter - only rendered when dialog enables it */-->
+            <div class="cmp-propertysearch__filter-group"
+                 data-sly-test="${model.showPropertyTypeFilter}">
+                <label>Property Type</label>
+                <select name="types" class="cmp-propertysearch__select">
+                    <option value="">All Types</option>
+                    <option value="villa"
+                        ${model.currentTypes contains 'villa' ? 'selected' : ''}>Villa</option>
+                    <option value="apartment"
+                        ${model.currentTypes contains 'apartment' ? 'selected' : ''}>Apartment</option>
+                    <option value="house"
+                        ${model.currentTypes contains 'house' ? 'selected' : ''}>House</option>
+                    <option value="penthouse"
+                        ${model.currentTypes contains 'penthouse' ? 'selected' : ''}>Penthouse</option>
+                    <option value="plot"
+                        ${model.currentTypes contains 'plot' ? 'selected' : ''}>Plot / Land</option>
+                </select>
+            </div>
+
+            <!--/* Status filter */-->
+            <div class="cmp-propertysearch__filter-group"
+                 data-sly-test="${model.showStatusFilter}">
+                <label>Status</label>
+                <select name="statuses" class="cmp-propertysearch__select">
+                    <option value="">All Statuses</option>
+                    <option value="available"
+                        ${model.currentStatuses contains 'available' ? 'selected' : ''}>Available</option>
+                    <option value="rented"
+                        ${model.currentStatuses contains 'rented' ? 'selected' : ''}>Rented</option>
+                    <option value="sold"
+                        ${model.currentStatuses contains 'sold' ? 'selected' : ''}>Sold</option>
+                </select>
+            </div>
+
+            <!--/* Price Range filter */-->
+            <div class="cmp-propertysearch__filter-group cmp-propertysearch__filter-group--price"
+                 data-sly-test="${model.showPriceFilter}">
+                <label>Price Range</label>
+                <input type="number" name="priceMin" placeholder="Min price"
+                       value="${model.currentPriceMin @ context='attribute'}"
+                       class="cmp-propertysearch__price-input"/>
+                <span>to</span>
+                <input type="number" name="priceMax" placeholder="Max price"
+                       value="${model.currentPriceMax @ context='attribute'}"
+                       class="cmp-propertysearch__price-input"/>
+            </div>
+
+            <!--/* Featured Only toggle */-->
+            <div class="cmp-propertysearch__filter-group"
+                 data-sly-test="${model.showFeaturedFilter}">
+                <label>
+                    <input type="checkbox" name="featured" value="true"
+                           ${model.currentFeaturedOnly ? 'checked' : ''}/>
+                    Featured Only
+                </label>
+            </div>
+
+            <!--/* Sort options */-->
+            <div class="cmp-propertysearch__filter-group">
+                <label>Sort By</label>
+                <select name="sortBy" class="cmp-propertysearch__select">
+                    <option value="jcr:content/price"
+                        ${'jcr:content/price' == model.currentSortProperty ? 'selected' : ''}>Price</option>
+                    <option value="jcr:content/availableFrom"
+                        ${'jcr:content/availableFrom' == model.currentSortProperty ? 'selected' : ''}>Available From</option>
+                    <option value="@jcr:score"
+                        ${'@jcr:score' == model.currentSortProperty ? 'selected' : ''}>Relevance</option>
+                </select>
+                <select name="sortOrder" class="cmp-propertysearch__select">
+                    <option value="asc" ${'asc' == model.currentSortOrder ? 'selected' : ''}>Ascending</option>
+                    <option value="desc" ${'desc' == model.currentSortOrder ? 'selected' : ''}>Descending</option>
+                </select>
+            </div>
+
+        </div><!--/* end filters */-->
+
+    </form>
+
+    <!--/* ── RESULTS AREA ──────────────────────────────────────────────── */-->
+    <div class="cmp-propertysearch__results-area" data-sly-test="${model.searchExecuted}">
+
+        <!--/* Meta row: total count + query time */-->
+        <div class="cmp-propertysearch__meta" data-sly-test="${!model.noResults}">
+            <span>${model.totalMatches} properties found</span>
+            <span data-sly-test="${model.showQueryTime}"> in ${model.queryTimeMs}ms</span>
+        </div>
+
+        <!--/* No results message */-->
+        <div class="cmp-propertysearch__no-results" data-sly-test="${model.noResults}">
+            <p>${model.noResultsMessage}</p>
+        </div>
+
+        <!--/* ── FACETS SIDEBAR ─────────────────────────────────────── */-->
+        <div class="cmp-propertysearch__layout" data-sly-test="${!model.noResults}">
+
+            <aside class="cmp-propertysearch__facets">
+
+                <!--/* Property Type facets */-->
+                <div class="cmp-propertysearch__facet-group"
+                     data-sly-test="${model.showPropertyTypeFilter}">
+                    <h3 class="cmp-propertysearch__facet-title">Property Type</h3>
+                    <ul class="cmp-propertysearch__facet-list">
+                        <sly data-sly-list.facet="${model.propertyTypeFacets}">
+                            <li class="cmp-propertysearch__facet-item">
+                                <a href="?q=${model.currentQuery @ context='uri'}&types=${facet.key @ context='uri'}">
+                                    ${facet.key} <span>(${facet.value})</span>
+                                </a>
+                            </li>
+                        </sly>
+                    </ul>
+                </div>
+
+                <!--/* Status facets */-->
+                <div class="cmp-propertysearch__facet-group"
+                     data-sly-test="${model.showStatusFilter}">
+                    <h3 class="cmp-propertysearch__facet-title">Status</h3>
+                    <ul class="cmp-propertysearch__facet-list">
+                        <sly data-sly-list.status="${model.statusFacets}">
+                            <li class="cmp-propertysearch__facet-item">
+                                ${status.key} <span>(${status.value})</span>
+                            </li>
+                        </sly>
+                    </ul>
+                </div>
+
+            </aside>
+
+            <!--/* ── RESULT CARDS ──────────────────────────────────── */-->
+            <section class="cmp-propertysearch__cards">
+
+                <sly data-sly-list.hit="${model.hits}">
+                    <article class="cmp-propertysearch__card
+                                    ${hit.featured ? 'cmp-propertysearch__card--featured' : ''}">
+                        <div class="cmp-propertysearch__card-badge"
+                             data-sly-test="${hit.featured}">Featured</div>
+                        <h3 class="cmp-propertysearch__card-title">
+                            <a href="${hit.path @ context='uri'}.html">${hit.title}</a>
+                        </h3>
+                        <p class="cmp-propertysearch__card-meta">
+                            ${hit.propertyType} &bull; ${hit.status}
+                        </p>
+                        <p class="cmp-propertysearch__card-price">
+                            ${hit.price} <span>${hit.currency}</span>
+                        </p>
+                        <a class="cmp-propertysearch__card-cta"
+                           href="${hit.path @ context='uri'}.html">View Listing</a>
+                    </article>
+                </sly>
+
+            </section>
+
+        </div><!--/* end layout */-->
+
+        <!--/* ── PAGINATION ─────────────────────────────────────────── */-->
+        <nav class="cmp-propertysearch__pagination" data-sly-test="${!model.noResults}">
+
+            <a class="cmp-propertysearch__pagination-prev"
+               data-sly-test="${model.previousPage >= 0}"
+               href="?q=${model.currentQuery @ context='uri'}&page=${model.previousPage}">
+                &larr; Previous
+            </a>
+
+            <span class="cmp-propertysearch__pagination-info">
+                Page ${model.currentPage + 1}
+            </span>
+
+            <a class="cmp-propertysearch__pagination-next"
+               data-sly-test="${model.hasMore}"
+               href="?q=${model.currentQuery @ context='uri'}&page=${model.nextPage}">
+                Next &rarr;
+            </a>
+
+        </nav>
+
+    </div><!--/* end results area */-->
+
+    <!--/* Initial state — no search run yet */-->
+    <div class="cmp-propertysearch__prompt" data-sly-test="${!model.searchExecuted}">
+        <p>Enter a search term or select filters above to find properties.</p>
+    </div>
+
+</div>
+
+<sly data-sly-call="${clientLib.js @ categories='sibi-aem-one.propertysearch'}"/>

@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  INDEX 1: propertyListingLuceneIndex
+  Purpose : Full-text search + property filters + facets + sort on property listing pages.
+
+  Why a custom index and not the OOTB cqPageLucene?
+    - cqPageLucene indexes ALL cq:Page properties across the entire repository.
+    - For a query that filters on custom properties like propertyType, status,
+      price, and amenityTags, cqPageLucene is not selective enough — it returns
+      too many candidate nodes, raising cost and slowing results.
+    - This index is scoped to /content/sibi-aem-one only, covers only the
+      properties we actually query, and adds facets + ordering — features
+      the OOTB index doesn't have for these specific fields.
+-->
+<jcr:root xmlns:jcr="http://www.jcp.org/jcr/1.0"
+          xmlns:nt="http://www.jcp.org/jcr/nt/1.0"
+          xmlns:oak="http://jackrabbit.apache.org/oak/ns/1.0"
+          jcr:primaryType="oak:QueryIndexDefinition"
+
+          type="lucene"
+
+          <!--
+            async="async" means the index updates on the background async lane
+            (~5 sec delay after content save before it appears in search).
+            For near-real-time requirements, use "sync" — but this slows every
+            JCR commit that touches indexed nodes, so only do it when truly needed.
+          -->
+          async="async"
+
+          <!--
+            compatVersion=2 enables all modern Oak Lucene features.
+            compatVersion=1 is legacy — always use 2.
+          -->
+          compatVersion="{Long}2"
+
+          <!--
+            evaluatePathRestrictions=true ensures that path restrictions in queries
+            (e.g. path=/content/sibi-aem-one) are honoured by this index.
+            Without this, the index returns results from the entire repository
+            and Oak post-filters — wasteful and slower.
+          -->
+          evaluatePathRestrictions="{Boolean}true"
+
+          <!--
+            includedPaths: only index nodes under these paths.
+            Keeps the index small and focused — indexing the whole repository
+            would make this index as slow as the OOTB default lucene.
+          -->
+          includedPaths="[/content/sibi-aem-one]"
+
+          <!--
+            excludedPaths: explicitly exclude paths even within includedPaths.
+            Here we exclude the jcr:content/renditions subtree of DAM assets
+            that might accidentally fall under /content/sibi-aem-one/dam.
+          -->
+          excludedPaths="[/content/sibi-aem-one/dam]">
+
+    <indexRules jcr:primaryType="nt:unstructured">
+        <!--
+          indexRules: which node types this index covers.
+          Only cq:Page nodes are indexed — we don't want nt:unstructured
+          component nodes, dam:Asset nodes, etc. appearing in property search results.
+          Narrowing to one node type makes the index dramatically smaller.
+        -->
+        <cq:Page jcr:primaryType="nt:unstructured">
+            <properties jcr:primaryType="nt:unstructured">
+
+                <!--
+                  PROPERTY 1: jcr:title — full-text search field
+                  analyzed=true     : runs through the Analyzer chain (tokenise,
+                                      lowercase, stop words, Porter stemming).
+                                      Required for full-text search — without it
+                                      only exact string match works.
+                  nodeScopeIndex=true: adds tokens to the node-level aggregate
+                                      full-text index so the QueryBuilder
+                                      "fulltext" predicate can match on this field.
+                  boost=2.0         : a match in title scores twice as high as a
+                                      match in description for relevance ranking.
+                  stored=false      : don't store the raw value in the Lucene
+                                      document store — we read it from JCR instead.
+                                      Saves index disk space.
+                -->
+                <title jcr:primaryType="nt:unstructured"
+                    name="jcr:content/jcr:title"
+                    analyzed="{Boolean}true"
+                    nodeScopeIndex="{Boolean}true"
+                    boost="{Double}2.0"
+                    stored="{Boolean}false"/>
+
+                <!--
+                  PROPERTY 2: shortDescription — analysed for full-text body search
+                  Lower boost than title (1.0 default) — title matches rank higher.
+                -->
+                <description jcr:primaryType="nt:unstructured"
+                    name="jcr:content/shortDescription"
+                    analyzed="{Boolean}true"
+                    nodeScopeIndex="{Boolean}true"
+                    stored="{Boolean}false"/>
+
+                <!--
+                  PROPERTY 3: propertyType — exact filter + facet counts
+                  propertyIndex=true : enables equality query (propertyType = 'villa').
+                  facets=true        : enables facet counts — how many results per
+                                      propertyType value in the result set.
+                                      Without this, facet queries fall back to
+                                      traversal over all results.
+                  notNullCheckEnabled: includes nodes where this property exists
+                                      in the index even if its value is empty.
+                -->
+                <propertyType jcr:primaryType="nt:unstructured"
+                    name="jcr:content/propertyType"
+                    propertyIndex="{Boolean}true"
+                    facets="{Boolean}true"
+                    notNullCheckEnabled="{Boolean}true"/>
+
+                <!--
+                  PROPERTY 4: status — exact filter + facet
+                -->
+                <status jcr:primaryType="nt:unstructured"
+                    name="jcr:content/status"
+                    propertyIndex="{Boolean}true"
+                    facets="{Boolean}true"/>
+
+                <!--
+                  PROPERTY 5: price — numeric range query + sort
+                  type="Double"   : tells Lucene this is a numeric field.
+                                    Without type, all values are stored as strings —
+                                    string sort "1000" < "500" because "1" < "5"
+                                    lexicographically. Numeric type fixes this.
+                  ordered=true    : creates a separate DocValues column for this
+                                    field, enabling efficient sort WITHOUT scoring
+                                    overhead. Without ordered=true, ORDER BY on
+                                    this field causes traversal of all result nodes.
+                  propertyIndex=true: enables range queries (price > 300000 AND price < 800000).
+                -->
+                <price jcr:primaryType="nt:unstructured"
+                    name="jcr:content/price"
+                    type="Double"
+                    propertyIndex="{Boolean}true"
+                    ordered="{Boolean}true"/>
+
+                <!--
+                  PROPERTY 6: availableFrom — date range + sort
+                  type="Date" : enables correct date range queries and chronological sort.
+                -->
+                <availableFrom jcr:primaryType="nt:unstructured"
+                    name="jcr:content/availableFrom"
+                    type="Date"
+                    propertyIndex="{Boolean}true"
+                    ordered="{Boolean}true"/>
+
+                <!--
+                  PROPERTY 7: amenityTags — multi-value tag filter
+                  Tags are stored as a String[] (e.g. ["mysite:amenities/pool",
+                  "mysite:amenities/gym"]). propertyIndex on a multi-value property
+                  creates one postings entry per value — enabling queries like
+                  "has tag mysite:amenities/pool" efficiently.
+                -->
+                <amenityTags jcr:primaryType="nt:unstructured"
+                    name="jcr:content/amenityTags"
+                    propertyIndex="{Boolean}true"/>
+
+                <!--
+                  PROPERTY 8: featured — boolean filter
+                  Used to filter featured-only listings.
+                -->
+                <featured jcr:primaryType="nt:unstructured"
+                    name="jcr:content/featured"
+                    type="Boolean"
+                    propertyIndex="{Boolean}true"/>
+
+                <!--
+                  PROPERTY 9: sling:resourceType — REQUIRED for index selectivity
+                  Always include sling:resourceType in your index rules when you
+                  want to narrow results to a specific component type.
+                  Without this, the index can't distinguish property listing pages
+                  from other cq:Page subtypes (blog pages, landing pages etc.)
+                  that happen to be under /content/sibi-aem-one.
+                -->
+                <resourceType jcr:primaryType="nt:unstructured"
+                    name="jcr:content/sling:resourceType"
+                    propertyIndex="{Boolean}true"/>
+
+            </properties>
+        </cq:Page>
+    </indexRules>
+
+    <!--
+      ANALYZER CONFIGURATION
+      The same analyzer chain MUST be applied at both index time and query time.
+      Oak applies this definition to both sides automatically — define it once here.
+
+      Chain: standard tokeniser → lowercase → stop words → Porter stemmer
+
+      Result: "Beachfront Villas near the Ocean"
+        tokens : ["Beachfront","Villas","near","the","Ocean"]
+        lower  : ["beachfront","villas","near","the","ocean"]
+        stops  : ["beachfront","villas","ocean"]  ("near","the" removed)
+        stem   : ["beachfront","villa","ocean"]   ("villas"→"villa")
+
+      A user searching "villa" now matches documents indexed with "villas",
+      "villa", "villager" etc. This is stemming's core value.
+    -->
+    <analyzers jcr:primaryType="nt:unstructured">
+        <default jcr:primaryType="nt:unstructured">
+            <tokenizer jcr:primaryType="nt:unstructured"
+                name="standard"/>
+            <filters jcr:primaryType="nt:unstructured">
+                <LowerCase jcr:primaryType="nt:unstructured"
+                    name="LowerCase"/>
+                <Stop jcr:primaryType="nt:unstructured"
+                    name="Stop"
+                    words="stopwords.txt"
+                    ignoreCase="{Boolean}true"/>
+                <PorterStem jcr:primaryType="nt:unstructured"
+                    name="PorterStem"/>
+            </filters>
+        </default>
+        <!--
+          queryAnalyzer: optionally define a DIFFERENT analyzer for the query side.
+          Useful when you want to stem index terms but keep query terms exact —
+          e.g. to allow "villa" to match stemmed "villa" but not stem "villa*"
+          wildcard queries (wildcards + stemming conflict).
+          If omitted, the default analyzer applies to both sides.
+        -->
+    </analyzers>
+
+</jcr:root>

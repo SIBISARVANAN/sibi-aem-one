@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Property Search Component Dialog.
+  Allows authors to configure the search component's default behaviour:
+  which root path to search under, default sort, page size, and which
+  filter types to expose to visitors.
+-->
+<jcr:root xmlns:jcr="http://www.jcp.org/jcr/1.0"
+          xmlns:nt="http://www.jcp.org/jcr/nt/1.0"
+          xmlns:granite="http://www.adobe.com/jcr/granite/1.0"
+          xmlns:sling="http://sling.apache.org/jcr/sling/1.0"
+          jcr:primaryType="nt:unstructured"
+          jcr:title="Property Search Configuration"
+          sling:resourceType="cq/gui/components/authoring/dialog">
+
+    <content jcr:primaryType="nt:unstructured"
+             sling:resourceType="granite/ui/components/coral/foundation/container">
+        <items jcr:primaryType="nt:unstructured">
+            <tabs jcr:primaryType="nt:unstructured"
+                  sling:resourceType="granite/ui/components/coral/foundation/tabs"
+                  maximized="{Boolean}true">
+                <items jcr:primaryType="nt:unstructured">
+
+                    <!-- TAB 1: Search Configuration -->
+                    <search jcr:primaryType="nt:unstructured"
+                            jcr:title="Search"
+                            sling:resourceType="granite/ui/components/coral/foundation/container">
+                        <items jcr:primaryType="nt:unstructured">
+
+                            <searchRootPath jcr:primaryType="nt:unstructured"
+                                sling:resourceType="granite/ui/components/coral/foundation/form/pathfield"
+                                fieldLabel="Search Root Path"
+                                fieldDescription="Root JCR path to search under. Defaults to /content/sibi-aem-one if empty."
+                                name="./searchRootPath"
+                                rootPath="/content/sibi-aem-one"/>
+
+                            <pageSize jcr:primaryType="nt:unstructured"
+                                sling:resourceType="granite/ui/components/coral/foundation/form/numberfield"
+                                fieldLabel="Results Per Page"
+                                fieldDescription="Number of results to show per page. Default: 12."
+                                name="./pageSize"
+                                value="12"
+                                min="4"
+                                max="48"/>
+
+                            <defaultSortProperty jcr:primaryType="nt:unstructured"
+                                sling:resourceType="granite/ui/components/coral/foundation/form/select"
+                                fieldLabel="Default Sort"
+                                name="./defaultSortProperty">
+                                <items jcr:primaryType="nt:unstructured">
+                                    <price jcr:primaryType="nt:unstructured"
+                                        text="Price" value="jcr:content/price"/>
+                                    <date jcr:primaryType="nt:unstructured"
+                                        text="Available From" value="jcr:content/availableFrom"/>
+                                    <relevance jcr:primaryType="nt:unstructured"
+                                        text="Relevance (default)" value="@jcr:score"/>
+                                </items>
+                            </defaultSortProperty>
+
+                            <defaultSortOrder jcr:primaryType="nt:unstructured"
+                                sling:resourceType="granite/ui/components/coral/foundation/form/select"
+                                fieldLabel="Default Sort Order"
+                                name="./defaultSortOrder">
+                                <items jcr:primaryType="nt:unstructured">
+                                    <asc jcr:primaryType="nt:unstructured" text="Ascending" value="asc"/>
+                                    <desc jcr:primaryType="nt:unstructured" text="Descending" value="desc"/>
+                                </items>
+                            </defaultSortOrder>
+
+                        </items>
+                    </search>
+
+                    <!-- TAB 2: Filter Visibility -->
+                    <filters jcr:primaryType="nt:unstructured"
+                             jcr:title="Filters"
+                             sling:resourceType="granite/ui/components/coral/foundation/container">
+                        <items jcr:primaryType="nt:unstructured">
+
+                            <showPropertyTypeFilter jcr:primaryType="nt:unstructured"
+                                sling:resourceType="granite/ui/components/coral/foundation/form/checkbox"
+                                text="Show Property Type filter"
+                                name="./showPropertyTypeFilter"
+                                value="{Boolean}true"
+                                uncheckedValue="{Boolean}false"
+                                checked="{Boolean}true"/>
+
+                            <showStatusFilter jcr:primaryType="nt:unstructured"
+                                sling:resourceType="granite/ui/components/coral/foundation/form/checkbox"
+                                text="Show Status filter"
+                                name="./showStatusFilter"
+                                value="{Boolean}true"
+                                uncheckedValue="{Boolean}false"
+                                checked="{Boolean}true"/>
+
+                            <showPriceFilter jcr:primaryType="nt:unstructured"
+                                sling:resourceType="granite/ui/components/coral/foundation/form/checkbox"
+                                text="Show Price Range filter"
+                                name="./showPriceFilter"
+                                value="{Boolean}true"
+                                uncheckedValue="{Boolean}false"
+                                checked="{Boolean}true"/>
+
+                            <showFeaturedFilter jcr:primaryType="nt:unstructured"
+                                sling:resourceType="granite/ui/components/coral/foundation/form/checkbox"
+                                text="Show Featured Only toggle"
+                                name="./showFeaturedFilter"
+                                value="{Boolean}true"
+                                uncheckedValue="{Boolean}false"
+                                checked="{Boolean}false"/>
+
+                        </items>
+                    </filters>
+
+                    <!-- TAB 3: Display Options -->
+                    <display jcr:primaryType="nt:unstructured"
+                             jcr:title="Display"
+                             sling:resourceType="granite/ui/components/coral/foundation/container">
+                        <items jcr:primaryType="nt:unstructured">
+
+                            <noResultsMessage jcr:primaryType="nt:unstructured"
+                                sling:resourceType="granite/ui/components/coral/foundation/form/textfield"
+                                fieldLabel="No Results Message"
+                                name="./noResultsMessage"
+                                value="No properties found matching your search."/>
+
+                            <placeholderText jcr:primaryType="nt:unstructured"
+                                sling:resourceType="granite/ui/components/coral/foundation/form/textfield"
+                                fieldLabel="Search Input Placeholder"
+                                name="./placeholderText"
+                                value="Search properties by name, location or features..."/>
+
+                            <showQueryTime jcr:primaryType="nt:unstructured"
+                                sling:resourceType="granite/ui/components/coral/foundation/form/checkbox"
+                                text="Show query execution time (for debugging)"
+                                name="./showQueryTime"
+                                value="{Boolean}true"
+                                uncheckedValue="{Boolean}false"
+                                checked="{Boolean}false"/>
+
+                        </items>
+                    </display>
+
+                </items>
+            </tabs>
+        </items>
+    </content>
+</jcr:root>

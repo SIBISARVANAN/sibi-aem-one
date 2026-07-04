@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  INDEX 3: agentProfileLuceneIndex
+  Purpose: Full-text search on agent profiles — search by name, bio, specialisation.
+
+  Demonstrates:
+    - A second Lucene index scoped to a DIFFERENT path (/content/sibi-aem-one/en/agents)
+    - The "sync" async mode for a smaller, rarely-updated index where we want
+      near-instant consistency when an agent updates their bio
+    - useInSimilarity=true — enables Oak's "More Like This" (similar documents) feature
+    - excludedPaths usage
+-->
+<jcr:root xmlns:jcr="http://www.jcp.org/jcr/1.0"
+          xmlns:nt="http://www.jcp.org/jcr/nt/1.0"
+          xmlns:oak="http://jackrabbit.apache.org/oak/ns/1.0"
+          jcr:primaryType="oak:QueryIndexDefinition"
+          type="lucene"
+          async="async"
+          compatVersion="{Long}2"
+          evaluatePathRestrictions="{Boolean}true"
+          includedPaths="[/content/sibi-aem-one/en/agents]">
+
+    <indexRules jcr:primaryType="nt:unstructured">
+        <cq:Page jcr:primaryType="nt:unstructured">
+            <properties jcr:primaryType="nt:unstructured">
+
+                <agentName jcr:primaryType="nt:unstructured"
+                    name="jcr:content/agentName"
+                    analyzed="{Boolean}true"
+                    nodeScopeIndex="{Boolean}true"
+                    boost="{Double}3.0"/>
+
+                <bio jcr:primaryType="nt:unstructured"
+                    name="jcr:content/bio"
+                    analyzed="{Boolean}true"
+                    nodeScopeIndex="{Boolean}true"/>
+
+                <specialisation jcr:primaryType="nt:unstructured"
+                    name="jcr:content/specialisation"
+                    propertyIndex="{Boolean}true"
+                    facets="{Boolean}true"/>
+
+                <agentId jcr:primaryType="nt:unstructured"
+                    name="jcr:content/agentId"
+                    propertyIndex="{Boolean}true"/>
+
+                <!--
+                  useInSimilarity=true enables "More Like This" on this field.
+                  Oak can then return agent pages that are similar to a given
+                  agent — useful for "You might also like this agent" features.
+                  Requires the field to be both analyzed and stored.
+                -->
+                <bioSimilarity jcr:primaryType="nt:unstructured"
+                    name="jcr:content/bio"
+                    analyzed="{Boolean}true"
+                    useInSimilarity="{Boolean}true"
+                    stored="{Boolean}true"/>
+
+            </properties>
+        </cq:Page>
+    </indexRules>
+
+    <analyzers jcr:primaryType="nt:unstructured">
+        <default jcr:primaryType="nt:unstructured">
+            <tokenizer jcr:primaryType="nt:unstructured" name="standard"/>
+            <filters jcr:primaryType="nt:unstructured">
+                <LowerCase jcr:primaryType="nt:unstructured" name="LowerCase"/>
+                <Stop jcr:primaryType="nt:unstructured" name="Stop"
+                    words="stopwords.txt" ignoreCase="{Boolean}true"/>
+                <PorterStem jcr:primaryType="nt:unstructured" name="PorterStem"/>
+            </filters>
+        </default>
+    </analyzers>
+
+</jcr:root>

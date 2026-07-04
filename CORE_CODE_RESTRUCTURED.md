@@ -1114,3 +1114,204 @@ Page-load facts are rendered server-side via a Sling Model that composes with (n
 <script>window.adobeDataLayer.push(${dataLayer.dataLayerJson @ context='unsafe'});</script>
 <button data-property-id="${dataLayer.propertyId}">RSVP</button>
 ```
+
+
+
+---
+
+## 13. CSRF Token Handling
+
+### What CSRF is
+
+A third-party site forges a POST request to AEM on behalf of a logged-in user — the browser automatically attaches the session cookie, so AEM cannot distinguish it from a real request.
+
+### How the token fixes it
+
+AEM generates a random token tied to the user's session and puts it in a response body (not a cookie). Cross-origin scripts cannot read response bodies (browser Same-Origin Policy). Without the token, the forged POST is rejected with HTTP 403 by `CSRFFilter` before your servlet ever runs.
+
+### Correct pattern — use the OOTB endpoint, no custom GET needed
+
+```javascript
+// Fetch once on page load from AEM's built-in endpoint
+fetch("/libs/granite/csrf/token.json", { credentials: "same-origin" })
+    .then(res => res.json())
+    .then(data => { csrfToken = data.token; });
+
+// Attach to every POST
+fetch("/bin/myservlet", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "CSRF-Token": csrfToken }
+});
+```
+
+```html
+<!--/* Plain HTML form — render token server-side */-->
+<sly data-sly-use.csrf="/libs/granite/csrf/token.json"/>
+<form method="POST">
+    <input type="hidden" name=":cq_csrf_token" value="${csrf.token}"/>
+</form>
+```
+
+**Do NOT** write a custom GET endpoint to issue tokens — `/libs/granite/csrf/token.json` already exists. **Do NOT** call `csrfTokenManager.isValidToken()` manually in your servlet — `CSRFFilter` already did it before `doPost()` was reached.
+
+### Three-pillar security model
+
+- HttpOnly session cookie — JS on evil.com can't steal it
+- Same-Origin Policy — evil.com can't read response bodies from your domain
+- Token tied to session — a stolen token string is useless without the matching session cookie
+
+---
+
+## 14. XSS Protection — XSSAPI
+
+### The core rule: the right escaper for the right context
+
+| Context | Method | What it escapes |
+|---|---|---|
+| HTML body text | `encodeForHTML(v)` | `< > & " '` |
+| HTML attribute value | `encodeForHTMLAttr(v)` | `" '` and attribute-breakers |
+| JavaScript string literal | `encodeForJSString(v)` | `\ ' " newlines </script>` |
+| URL in href/src | `filterURLProtocols(v)` then `encodeForHTML(v)` | Dangerous schemes + HTML chars |
+| Rich text / RTE output | `filterHTML(v)` | Strips script/iframe/on* events |
+| Redirect target | `getValidHref(v)` | Validates structure + protocol |
+
+### Why HTML escaping is WRONG inside a `<script>` block
+
+`&#39;` (HTML entity for `'`) is NOT decoded by the JavaScript engine — it's only decoded by the HTML parser in body text. Inside a `<script>` block the browser is in JS mode. The literal `'` character still breaks out of the string.
+
+`encodeForJSString()` escapes the `'` as `\'` — a JavaScript backslash escape — which the JS engine understands as "this quote is part of the string, not the end of it."
+
+### Injection points that developers commonly miss
+
+- `data-*` attributes (still need `encodeForHTMLAttr`)
+- Redirect URLs (`getValidHref` + relative-path check to prevent open redirect)
+- The `</script>` sequence inside a JS string (closes the script block in the HTML parser — `encodeForJSString` escapes the `/`)
+
+### JCR values vs request parameters
+
+JCR properties authored via AEM dialog are generally trusted (AEM sanitised them on save). Request parameters are NEVER trusted — treat every `request.getParameter()` as potentially malicious.
+
+---
+
+## 15. Thread Dumps — Reading & Analysis
+
+### What it is
+A snapshot of every JVM thread's call stack at one moment. Take 3 dumps 10 seconds apart — patterns across all three reveal genuinely stuck threads vs momentarily slow ones.
+
+### How to take one
+```bash
+# Method 1: jstack (most reliable)
+jstack <PID> > /tmp/threaddump-$(date +%H%M%S).txt
+
+# Method 2: kill signal (Linux — does NOT kill the process)
+kill -3 <PID>   # output goes to crx-quickstart/logs/stderr.log
+
+# Method 3: AEM URL (author only)
+GET http://localhost:4502/system/console/status-jstack
+```
+
+### Thread states
+| State | Meaning | AEM implication |
+|---|---|---|
+| `RUNNABLE` | Actively executing | Normal |
+| `BLOCKED` | Waiting to acquire a monitor lock | **Problem — contention** |
+| `TIMED_WAITING` | Sleeping with timeout | Usually normal for schedulers |
+| `WAITING` | Waiting indefinitely | Could be blocked on I/O or lock |
+
+### Four patterns to look for
+**1. Many threads BLOCKED on the same hex address** — find who holds that lock:
+```
+"http-nio-4502-exec-23" BLOCKED on <0x7b3c>
+"http-nio-4502-exec-24" BLOCKED on <0x7b3c>   ← 47 threads all waiting
+...
+"scheduler-1-thread-1" RUNNABLE - locked <0x7b3c>   ← this one holds it
+  at com.sibi.aem.one.core.services.ExternalApiServiceImpl.fetchProductData():89
+```
+Fix: remove unnecessary `synchronized`, or add HTTP connection request timeout.
+
+**2. "Found one Java-level deadlock"** at the bottom — two threads each holding a lock the other needs. Fix: standardise lock acquisition order.
+
+**3. All request threads WAITING on HTTP pool** — `PoolingHttpClientConnectionManager.requestConnection()` — pool exhausted. Fix: increase `maxConnections` or add timeouts.
+
+**4. Same thread RUNNABLE in same call stack across all 3 dumps** — runaway loop. Cross-reference with `top -H -p <PID>`, convert OS thread ID to hex, find matching `nid=` in the dump.
+
+---
+
+## 16. Heap Dumps — Analysis with Eclipse MAT
+
+### What it is
+A binary snapshot of the entire JVM heap. Taken proactively (`jmap`) or automatically on OutOfMemoryError.
+
+```bash
+# Auto-dump on OOME — add to JVM args in crx-quickstart/bin/start
+-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/aem-heapdump.hprof
+
+# Manual dump (pauses JVM briefly)
+jmap -dump:live,format=b,file=/tmp/heapdump-live.hprof <PID>
+```
+
+### Eclipse MAT — four views
+**1. Leak Suspects** — start here. MAT auto-identifies the single biggest accumulation. In AEM this is almost always an unclosed ResourceResolver or unbounded cache.
+
+**2. Histogram** — all classes sorted by Retained Heap (memory freed if that whole class were collected). Look for unexpected counts:
+- Thousands of `JcrResourceResolver` → ResourceResolver leak
+- One enormous `HashMap` → unbounded cache (fixed in InventoryServiceImpl earlier)
+
+**3. Dominator Tree** — which single object retains the most memory. Traces "lots of X" back to "this piece of your code created and is holding them."
+
+**4. OQL** — query language for targeted hunting:
+```sql
+SELECT * FROM org.apache.sling.jcr.resource.internal.JcrResourceResolver
+SELECT * FROM java.util.HashMap m WHERE m.size > 10000
+```
+
+### Three most common AEM heap problems
+**1. ResourceResolver leak** — fix: always use try-with-resources:
+```java
+try (ResourceResolver resolver = factory.getServiceResourceResolver(params)) {
+    // resolver.close() called automatically even on exception
+}
+```
+**2. Unbounded cache** — fix: Guava Cache with `maximumSize` + `expireAfterWrite` (fixed in InventoryServiceImpl).
+
+**3. QueryBuilder session leak** — fix: cast query to `Closeable` and close it after iterating hits.
+
+---
+
+## 17. CIF GraphQL Caching
+
+### Architecture
+```
+Browser → AEM Publish (CIF + GraphqlClientImpl Guava Cache) → Adobe Commerce/Magento
+```
+CIF caches GraphQL responses in-process inside the AEM JVM — not in Dispatcher, because GraphQL POST requests have no URL to cache against.
+
+### Cache key
+SHA-256 hash of (GraphQL query string + serialised variables). Same query + same variables = cache hit.
+
+### OSGi config (factory — one per commerce endpoint)
+```json
+// com.adobe.cq.commerce.graphql.client.impl.GraphqlClientConfiguration~mysite.cfg.json
+{
+  "cacheEnabled": true,
+  "cachingTime": 300,
+  "cacheSize": 100,
+  "httpMethod": "GET"
+}
+```
+
+### How to see cache stats
+```
+/system/console/status-com.adobe.cq.commerce.graphql.client  ← hit/miss/eviction rates
+/system/console/jmx → search "GraphqlClient"                 ← live stats + invalidateAll
+```
+Enable DEBUG logging for `com.adobe.cq.commerce.graphql` to see HIT/MISS per query in error.log.
+
+### How to clear the cache
+| Method | When to use |
+|---|---|
+| Wait for TTL | Normal — entries self-expire after `cachingTime` seconds |
+| JMX `invalidateAll` | Immediate manual clear without restart |
+| OSGi config save | Triggers `@Modified` → cache reinitialised |
+| Bundle restart | Nuclear — use only when JMX unavailable |

@@ -2614,3 +2614,705 @@ The JSON is fully server-generated from typed Java fields (price, status, proper
 
 **Interview Q: Why is the property ID rendered as a `data-*` attribute instead of being looked up again in JavaScript?**  
 Single source of truth — the Java model is the only place that decides what the ID actually IS; JavaScript only decides WHEN to fire an event using that already-defined value. This avoids a markup/JS refactor silently breaking analytics with no compiler error to catch it (the same DOM-scraping fragility problem discussed earlier in Section 14's conceptual explanation).
+
+---
+
+## 26. CSRF Token Handling
+
+### The attack in one sentence
+A malicious website makes your browser silently POST to AEM using your session cookie — because browsers attach cookies automatically to every matching-domain request, AEM can't tell the forged request from a real one.
+
+### The fix in one sentence
+AEM generates a secret random token, puts it in a response BODY (not a cookie), and rejects any POST that doesn't include it — cross-origin scripts can never read response bodies (Same-Origin Policy), so the attacker can never get the token.
+
+### What to use in practice
+
+```javascript
+// GET token from OOTB endpoint — never build your own
+fetch("/libs/granite/csrf/token.json", { credentials: "same-origin" })
+    .then(r => r.json()).then(d => { csrfToken = d.token; });
+
+// Attach as header on every POST
+headers: { "CSRF-Token": csrfToken }
+// OR as a parameter named :cq_csrf_token
+```
+
+### What NOT to do
+
+| Wrong | Right |
+|---|---|
+| Build a custom GET endpoint to issue tokens | Use `/libs/granite/csrf/token.json` |
+| Call `csrfTokenManager.isValidToken()` in doPost | `CSRFFilter` already validated before doPost runs |
+| Rely on CSRF protection for GET requests | GET requests are never CSRF-protected — never mutate state in a GET handler |
+
+### Common interview Q&A
+
+**Q: What HTTP status does CSRFFilter return on a bad token?**  
+HTTP 403 — before your servlet's doPost() is ever invoked.
+
+**Q: Does CSRF apply to server-to-server calls?**  
+No — CSRF is a browser attack. Server-to-server calls don't carry session cookies automatically; exclude those paths from the filter or use service-user sessions which bypass the HTTP filter stack.
+
+**Q: Why can't evil.com just call /libs/granite/csrf/token.json and read the token?**  
+It can SEND the request but cannot READ the response — Same-Origin Policy blocks cross-origin response reads. The token is in the body, not in a cookie, so SOP locks it away from the attacker's script.
+
+---
+
+## 27. XSS Protection — XSSAPI
+
+### Core concept: context-specific escaping
+
+Using the wrong escaper for a context is as dangerous as no escaping at all.
+
+| Context | Method | Escapes |
+|---|---|---|
+| HTML body text | `encodeForHTML(v)` | `< > & " '` |
+| HTML attribute value | `encodeForHTMLAttr(v)` | `" '` and attribute-breakers |
+| JS string literal | `encodeForJSString(v)` | `\ ' " newlines </script>` |
+| URL (href/src) | `filterURLProtocols(v)` + `encodeForHTML(v)` | Blocks javascript:/vbscript: then HTML-encodes |
+| Rich text / RTE | `filterHTML(v)` | Strips script/iframe/on* via allowlist |
+| Redirect target | `getValidHref(v)` | Validates structure + protocol |
+
+### The JS string context explained
+
+```
+Attack input:  '; alert(document.cookie); var x = '
+
+Without encodeForJSString:
+  <script>var q = ''; alert(document.cookie); var x = '';</script>
+  → the ' closes the string → attacker's code executes
+
+With encodeForJSString:
+  <script>var q = '\'; alert(document.cookie); var x = \'';</script>
+  → \' means "literal apostrophe inside the string" → nothing executes
+```
+
+HTML escaping (`&#39;`) does NOT work here — the JS engine doesn't decode HTML entities inside script blocks.
+
+### The </script> injection corner case
+
+```
+Attack input:  </script><script>alert(1)</script>
+
+Without encoding:
+  <script>var q = '</script><script>alert(1)</script>';</script>
+  → the HTML parser sees </script> and CLOSES the block → attack succeeds
+
+encodeForJSString escapes / as \/ → </script> becomes <\/script>
+  → HTML parser never sees a closing tag → attack fails
+```
+
+### URL context — two-step mandatory
+
+```java
+// Step 1: block dangerous schemes (javascript:, vbscript:, data:)
+String filtered = xssAPI.filterURLProtocols(rawUrl);
+// Step 2: encode remaining characters for HTML attribute context
+String safe = xssAPI.encodeForHTML(filtered);
+// Step 3 (open redirect prevention): only allow relative paths
+if (safe.startsWith("/")) { /* use it */ }
+```
+
+### Common interview Q&A
+
+**Q: When should you use filterHTML vs encodeForHTML?**  
+`filterHTML` when the input IS expected to contain formatting HTML (e.g. RTE output) — it allows safe tags and strips dangerous ones. `encodeForHTML` when the input must be plain text — it encodes ALL tags as visible text, stripping no HTML, making it all literal characters.
+
+**Q: Does HTL's default escaping protect you everywhere?**  
+No — only in HTML body text and basic attribute contexts inside HTL templates. Java-built HTML strings (servlet responses), JS string literals in `<script>` blocks, and URL values all require explicit XSSAPI calls.
+
+**Q: Can `@ context='html'` in HTL replace filterHTML?**  
+Only for RTE fields authored through AEM's own dialog, which sanitises on save. For user-supplied input that arrives via HTTP request parameters, always use `xssAPI.filterHTML()` — never `@ context='html'` directly on untrusted input, as `context='html'` in HTL is equivalent to no escaping (it trusts the value is already safe HTML).
+
+**Q: What's wrong with using encodeForHTML inside a href attribute?**  
+It's incomplete — `encodeForHTML` doesn't block `javascript:` protocol. `filterURLProtocols()` is required as the first step to strip dangerous schemes before HTML-encoding the result.
+
+---
+
+## 28. Thread Dumps — Senior Interview Reference
+
+### How to take one
+```bash
+jstack <PID> > dump1.txt; sleep 10; jstack <PID> > dump2.txt; sleep 10; jstack <PID> > dump3.txt
+# Take 3, 10 seconds apart — patterns across all 3 reveal genuinely stuck threads
+```
+
+### Thread states cheat sheet
+| State | What it means | Red flag? |
+|---|---|---|
+| `RUNNABLE` | Executing or ready to execute | No |
+| `BLOCKED` | Waiting to acquire a monitor lock | **Yes — contention** |
+| `TIMED_WAITING` | Sleeping with timeout (scheduler) | Usually no |
+| `WAITING` | Waiting indefinitely (I/O, lock) | Possibly |
+
+### Interview analysis checklist
+```
+1. How many http-nio-4502-exec-* threads? What state are most in?
+2. If BLOCKED — what lock hex address? Search for "- locked <that hex>" to find holder.
+3. What is the lock holder doing? Read its stack bottom-to-top.
+4. Any "Found one Java-level deadlock" at the bottom of the dump?
+5. Same RUNNABLE stack in all 3 dumps = runaway loop. Cross-ref with top -H -p <PID>.
+```
+
+**Q: AEM is unresponsive. Thread dump shows 47 request threads BLOCKED on the same hex, held by a scheduler thread inside `fetchProductData()`. What happened and how do you fix it?**  
+The scheduler is holding a JVM monitor lock while blocked on a slow external HTTP call (or exhausted connection pool). All request threads queue behind it. Fix: remove `synchronized` from the method, or add a `connectionRequestTimeout` to the HTTP client so it fails fast instead of blocking indefinitely, releasing the lock.
+
+**Q: How do you find which thread is causing 100% CPU?**  
+`top -H -p <PID>` → note the OS thread ID using most CPU → convert to hex → search `nid=<hex>` in the thread dump → read that thread's call stack.
+
+**Q: What's the difference between BLOCKED and WAITING?**  
+`BLOCKED` = thread wants a monitor lock currently held by another thread — classic lock contention. `WAITING` = thread voluntarily released the CPU and is waiting for a signal or notification (e.g. `Object.wait()`, `LockSupport.park()`) — often normal for idle threads or threads waiting for async I/O.
+
+---
+
+## 29. Heap Dumps — Senior Interview Reference
+
+### When to take one
+- OutOfMemoryError (configure `-XX:+HeapDumpOnOutOfMemoryError` in advance)
+- Sustained high memory usage (Old Gen > 80% after Full GC)
+- Proactive: `jmap -dump:live,format=b,file=/tmp/heap.hprof <PID>`
+
+### Eclipse MAT analysis flow
+```
+1. Open .hprof → Run "Leak Suspects" report first
+2. Histogram → sort by Retained Heap → look for unexpected class counts
+3. Right-click suspicious class → Path to GC Roots → Exclude weak refs
+4. Root of that chain = your code holding the reference = the bug
+5. OQL for targeted hunting: SELECT * FROM java.util.HashMap m WHERE m.size > 10000
+```
+
+### AEM-specific things to look for in Histogram
+
+| Unexpected finding | Root cause |
+|---|---|
+| Thousands of `JcrResourceResolver` | ResourceResolver never closed — use try-with-resources |
+| One huge `HashMap`/`ConcurrentHashMap` | Unbounded cache — replace with Guava Cache + maximumSize + TTL |
+| Many `QueryResult` instances | QueryBuilder session leak — cast query to Closeable and close it |
+| Large `String[]` or `char[]` | Large content being held in memory — check for huge RTE field reads |
+
+**Q: What's the difference between Shallow Heap and Retained Heap in MAT?**  
+Shallow Heap = memory used by the object itself (its fields). Retained Heap = memory that would be freed if this object AND everything it exclusively references were collected. Retained Heap is what matters for finding leaks — an object with 48 bytes shallow but 287MB retained is holding a huge graph of other objects alive.
+
+**Q: What is "Path to GC Roots" in MAT and why do you use it?**  
+It traces the reference chain from a suspicious object all the way back to a GC Root (a thread, a static field, a JNI reference) — the one thing keeping it alive. This tells you exactly which piece of your code is holding the object and preventing garbage collection.
+
+**Q: Why use `jmap -dump:live` instead of plain `jmap -dump`?**  
+`live` forces a Full GC first, then dumps only surviving (reachable) objects. This eliminates unreachable objects that haven't been collected yet, making the dump smaller and the analysis focused on genuine leaks rather than GC noise.
+
+---
+
+## 30. CIF GraphQL Caching
+
+### Architecture
+CIF caches GraphQL responses **in-process inside the AEM JVM** (Guava Cache), not in Dispatcher — because GraphQL POST requests have no stable URL to cache against at the HTTP layer.
+
+```
+Browser → AEM Publish
+              ↓
+    GraphqlClientImpl (Guava Cache — in JVM heap)
+              ↓ cache miss only
+    Adobe Commerce / Magento GraphQL API
+```
+
+### Cache key
+SHA-256 hash of (query string + serialised variables). Same query + same variables = cache hit regardless of which user triggered it.
+
+### OSGi config (factory — one per commerce endpoint)
+```json
+{
+  "cacheEnabled": true,
+  "cachingTime": 300,
+  "cacheSize": 100,
+  "httpMethod": "GET"
+}
+```
+Factory config = one instance per site. Author can have short TTL (editors see fresh data), publish has longer TTL (performance).
+
+### Viewing cache stats
+```
+/system/console/status-com.adobe.cq.commerce.graphql.client  ← hit rate, miss rate, evictions
+/system/console/jmx → "GraphqlClient"                        ← live stats + invalidateAll operation
+```
+
+### Clearing the cache
+| Method | How |
+|---|---|
+| TTL expiry | Automatic — wait `cachingTime` seconds |
+| JMX | `/system/console/jmx` → GraphqlClient → `invalidateAll` |
+| OSGi config save | Triggers `@Modified` → cache rebuilt |
+| Bundle restart | Stop/Start bundle in `/system/console/bundles` |
+
+**Q: Why doesn't CIF use Dispatcher to cache GraphQL responses?**  
+Dispatcher caches HTTP responses keyed by URL. GraphQL queries are typically POST requests — POST has no stable URL and Dispatcher doesn't cache POST by design. CIF's JVM-level cache intercepts at the Java client layer before the HTTP response leaves AEM, making it framework-agnostic. Persisted queries (GET) CAN be Dispatcher-cached and is the recommended production approach.
+
+**Q: What happens to the CIF GraphQL cache on AEM restart?**  
+Lost entirely — it's in JVM heap memory only, not persisted. First requests after restart are all cache misses and call Magento directly. Design your `cachingTime` so this cold-start period is acceptable.
+
+**Q: How do you handle stale product prices after a Magento price update?**  
+Three options: (1) short `cachingTime` (60-120s) so stale data self-heals quickly, (2) Magento webhook on price change triggers AEM JMX `invalidateAll`, (3) Commerce Event Bus triggers a CIF cache invalidation listener. Most production teams use option 1 + option 2 together.
+
+**Q: How is CIF's GraphQL cache different from the JVM cache you'd write yourself (e.g. InventoryServiceImpl)?**  
+Functionally the same pattern — both are Guava Caches with `maximumSize` + `expireAfterWrite`. The difference is CIF's is built-in and configured via OSGi factory config per commerce endpoint, while your own cache is custom-written per service. The same "no ConcurrentHashMap without eviction" rule applies to both.
+
+---
+
+## 31. Lucene & Oak Search — Complete Reference
+
+### Layman: What Lucene Is
+
+AEM's repository has potentially millions of pages. Without a search index, finding pages matching a keyword means opening every single page and checking its content — like a librarian reading every book in a library. With Lucene, AEM pre-builds a **back-of-book card catalogue**: "beachfront appears in pages 1,234 and 45,678. Villa appears in pages 45,678, 89,123 and 234,567." A search for "beachfront villa" just looks up both words and returns the intersection — milliseconds, regardless of repository size.
+
+This is called an **inverted index** — instead of "document → words it contains," it stores "word → documents that contain it."
+
+---
+
+### The Inverted Index Structure — In Detail
+
+Lucene stores three things on disk:
+
+**1. The Dictionary — every unique word, sorted alphabetically**
+```
+"apartment"
+"available"
+"beachfront"
+"villa"
+"waterfront"
+```
+Sorted so binary search finds any word in ~20 steps regardless of dictionary size (log₂ of 10,000,000 = 23). Like finding a name in a phone book by repeatedly opening to the middle — never reading it cover to cover.
+
+**2. The Postings List — for each word, which document IDs contain it**
+```
+"beachfront" → [doc_45, doc_234, doc_567]
+"villa"      → [doc_45, doc_123, doc_234]
+```
+Stored as compact delta-encoded integers (differences between consecutive IDs, not full IDs — small numbers compress better).
+
+**3. The Document Store — stored field values per document**
+```
+doc_45  → { title: "Beachfront Villa Maldives", price: 850000, status: "available" }
+```
+Only fields marked `stored=true` go here — for returning values without re-reading JCR.
+
+**A search query does this — effectively instant:**
+```
+Query: "beachfront" AND "villa"
+Step 1: Binary search dictionary → "beachfront" → [doc_45, doc_234, doc_567]
+Step 2: Binary search dictionary → "villa"      → [doc_45, doc_123, doc_234]
+Step 3: Intersect both lists                    → [doc_45, doc_234]
+Total: ~3 operations. Same speed for 10 or 10 million documents.
+```
+
+**Physical files in AEM:**
+```
+crx-quickstart/repository/index/
+    lucene-1234/
+        _0.cfs     ← compound file segment (actual index data)
+        _0.si      ← segment info
+        segments_N ← active segment list
+        write.lock ← prevents concurrent writes
+```
+
+---
+
+### The Indexing Pipeline — How Content Gets INTO the Index
+
+Oak doesn't iterate through all nodes to build the index. It **reacts to change events** — the MVCC/NodeState diff system tracks exactly what changed between commits, so the indexer only ever processes what actually changed.
+
+```
+You click Save in AEM
+    ↓
+JCR saves the node (immediate)
+    ↓
+Oak writes a checkpoint: "node /content/.../my-property changed"
+    ↓
+(~5 seconds later) Async indexer wakes up, reads the checkpoint
+    ↓
+Checks which index definitions cover this node type/path
+    ↓
+For each matching index: reads the relevant properties
+    ↓
+Analyzer runs on text fields:
+  "Beachfront Villa Maldives"
+    → Tokenise  : ["Beachfront", "Villa", "Maldives"]
+    → Lowercase  : ["beachfront", "villa", "maldives"]
+    → Stop words : ["beachfront", "villa", "maldives"]  (none removed here)
+    → Stem       : ["beachfront", "villa", "maldiv"]
+    ↓
+IndexWriter adds to postings:
+  "beachfront" → doc_45
+  "villa"      → doc_45
+  "maldiv"     → doc_45
+    ↓
+Written to a new segment file on disk
+    ↓
+Next query for "beachfront villa" finds doc_45 instantly
+```
+
+**Key insight:** The indexer reacts to diffs, never scans the full repository. Oak knew exactly which node changed — the indexer only processes that delta.
+
+---
+
+### Asynchronous Indexing — The Most Important Operational Fact
+
+```
+/oak:index/@async = "async"            → runs every ~5 seconds
+/oak:index/@async = "fulltext-async"   → separate lane, also ~5 seconds
+```
+
+A page saved right now will NOT appear in a Lucene search for up to 5 seconds. Property indexes update synchronously (within the same commit) — always immediately consistent.
+
+Monitor async lag:
+```
+/system/console/jmx → "Async Indexing Statistics"
+→ shows: LastIndexedTime, IndexingLag, FailedIndexCount
+```
+
+---
+
+### Why Searching a Huge Index Isn't Slow — The Three Clarifications
+
+**"Going through millions of dictionary terms must be slow"**
+No — binary search. Finding "villa" in 10 million terms = 23 comparisons. Not 10 million.
+
+**"Iterating 50,000 matching document IDs must be slow"**
+No — integers in a compact array. A modern CPU processes ~1 billion integers/second. 50,000 takes 0.05 milliseconds. Merging two sorted lists (merge-join algorithm) runs in O(n+m), not O(n×m).
+
+**"Oak must check every index definition for each query"**
+No — the Oak **query planner** scores each index mathematically (using stored statistics about how many documents each index covers and how selective each predicate is) and picks exactly one winner. The entire evaluation is arithmetic, not data access — microseconds.
+
+```
+p.explain=true shows the decision:
+GET /bin/querybuilder.json?type=cq:Page&...&p.explain=true
+→ "plan": "[propertyListingIndex] cost: 2.3"   ← picked over traversal cost: 500,000
+```
+
+---
+
+### Four Oak Index Types
+
+| Type | How it works | Use for |
+|---|---|---|
+| `lucene` | Full Lucene inverted index | Full-text search, complex multi-property queries, sorting, facets |
+| `property` | B-tree on a single property | Simple exact equality / range queries |
+| `nodetype` | Index by jcr:primaryType / jcr:mixinTypes | Always used first to narrow by node type |
+| `counter` | Counts nodes in subtree | Rarely used directly |
+
+---
+
+### OOTB Indexes
+
+| Index | Covers |
+|---|---|
+| `lucene` | Default full-text — all node types, all text |
+| `cqPageLucene` | cq:Page nodes — most page queries use this |
+| `damAssetLucene` | DAM assets — asset search in Touch UI |
+| `workflowDataLucene` | Workflow instances |
+
+---
+
+### When to Create a Custom Index
+
+Create one when:
+1. Your query triggers a Traversal Warning in `error.log`
+2. You need to sort by a custom JCR property (`ordered=true` required)
+3. You need full-text search scoped to specific node types (narrower = faster)
+4. `/system/console/jmx → QueryStat → Slow Queries` shows your query at the top
+
+**Traversal Warning — the trigger:**
+```
+*WARN* Traversal query with more than 100000 nodes:
+/jcr:root/content/mysite//element(*,cq:Page)[jcr:content/@myCustomProp = 'value']
+```
+Oak is telling you: I had no index for this predicate, I read every node.
+
+---
+
+### Custom Index Definition — Full Example
+
+```xml
+<!-- /oak:index/propertyListingIndex/.content.xml -->
+<jcr:root jcr:primaryType="oak:QueryIndexDefinition"
+    type="lucene"
+    async="async"
+    compatVersion="{Long}2"
+    evaluatePathRestrictions="{Boolean}true"
+    includedPaths="[/content/sibi-aem-one]">
+
+    <indexRules jcr:primaryType="nt:unstructured">
+        <cq:Page jcr:primaryType="nt:unstructured">
+            <properties jcr:primaryType="nt:unstructured">
+
+                <!-- Full-text search on title -->
+                <title jcr:primaryType="nt:unstructured"
+                    name="jcr:content/jcr:title"
+                    analyzed="{Boolean}true"
+                    nodeScopeIndex="{Boolean}true"
+                    boost="{Double}2.0"/>
+
+                <!-- Exact filter -->
+                <propertyType jcr:primaryType="nt:unstructured"
+                    name="jcr:content/propertyType"
+                    propertyIndex="{Boolean}true"
+                    facets="{Boolean}true"/>
+
+                <!-- Range + sort -->
+                <price jcr:primaryType="nt:unstructured"
+                    name="jcr:content/price"
+                    propertyIndex="{Boolean}true"
+                    ordered="{Boolean}true"
+                    type="Double"/>
+
+                <!-- Date range -->
+                <availableFrom jcr:primaryType="nt:unstructured"
+                    name="jcr:content/availableFrom"
+                    propertyIndex="{Boolean}true"
+                    ordered="{Boolean}true"
+                    type="Date"/>
+
+            </properties>
+        </cq:Page>
+    </indexRules>
+
+    <analyzers jcr:primaryType="nt:unstructured">
+        <default jcr:primaryType="nt:unstructured">
+            <tokenizer jcr:primaryType="nt:unstructured" name="standard"/>
+            <filters jcr:primaryType="nt:unstructured">
+                <LowerCase jcr:primaryType="nt:unstructured" name="LowerCase"/>
+                <Stop jcr:primaryType="nt:unstructured"
+                    name="Stop" words="stopwords.txt" ignoreCase="{Boolean}true"/>
+                <PorterStem jcr:primaryType="nt:unstructured" name="PorterStem"/>
+            </filters>
+        </default>
+    </analyzers>
+
+</jcr:root>
+```
+
+### Index property flags explained
+
+| Flag | Effect |
+|---|---|
+| `analyzed=true` | Runs value through Analyzer — required for full-text search |
+| `nodeScopeIndex=true` | Adds tokens to aggregate full-text — allows `fulltext` predicate to match |
+| `propertyIndex=true` | Enables exact equality / range queries via `property` predicate |
+| `ordered=true` | Enables sorting by this property — without it ORDER BY causes traversal |
+| `type="Double"` | Numeric type for correct range queries and sorting |
+| `facets=true` | Enables aggregate counts by field value in result set |
+| `boost=2.0` | Matches in this field score twice as high for relevance ranking |
+| `evaluatePathRestrictions=true` | Honours path restrictions — almost always set true |
+| `includedPaths` | Only index nodes under these paths — smaller, faster index |
+| `compatVersion=2` | Required for modern Oak Lucene features — always use 2 |
+
+### After deploying: trigger reindexing
+
+```
+CRXDE: /oak:index/propertyListingIndex → add property reindex=Boolean(true) → Save
+Oak reindexes existing content, sets reindex back to false when done.
+
+Large repos: use oak-run.jar offline reindex to avoid JVM pause.
+```
+
+### Verify the index is being used
+
+```
+GET /bin/querybuilder.json?type=cq:Page&1_property=jcr:content/propertyType
+    &1_property.value=villa&p.explain=true
+→ "[propertyListingIndex] cost: 2.3"    ← your index was picked
+→ "traversal cost: 500000"              ← this would mean no index matched
+```
+
+---
+
+### Analyzers — How Text Is Processed
+
+When `analyzed=true` is set, both the indexed text AND the search query run through the same Analyzer chain:
+
+```
+Input: "Beachfront Villas near the Ocean"
+    ↓ Tokenizer (split on whitespace + punctuation)
+    ["Beachfront", "Villas", "near", "the", "Ocean"]
+    ↓ LowerCase Filter
+    ["beachfront", "villas", "near", "the", "ocean"]
+    ↓ Stop Words Filter
+    ["beachfront", "villas", "ocean"]    ← "near" and "the" removed
+    ↓ PorterStem Filter
+    ["beachfront", "villa", "ocean"]     ← "villas" → "villa"
+```
+
+**Critical rule:** the SAME analyzer must process both index time AND query time. Oak applies the defined analyzer to both sides automatically — define it once in `analyzers/default`.
+
+---
+
+### Stemming — What It Is and Why It Matters
+
+Stemming reduces words to their root form so plural/singular/verb-form variants all match the same index term.
+
+| Original | Stemmed to |
+|---|---|
+| running, runs, ran | run |
+| villas, villa | villa |
+| properties, property | properti |
+| swimming, swimmer | swim |
+| availability, available | avail |
+
+Note: stems are not always real words — "properti" is not a word, but it's the consistent root that both "property" and "properties" map to, enabling them to match each other in search.
+
+**Without stemming:** search "villas" → only matches documents containing exactly "villas". Documents with "villa" NOT returned.
+
+**With stemming:** "villas" → "villa" at both index time and query time → same term → match found.
+
+---
+
+### Partial Word Search (Wildcards)
+
+Lucene stores terms as exact strings sorted in the dictionary. Wildcard search scans the sorted dictionary from the matching prefix point:
+
+```
+villa*   → matches: villa, villas, villagio    (efficient — scan from "villa" forward)
+*front   → matches: beachfront, waterfront     (SLOW — must scan entire dictionary)
+villa?   → ? = exactly one character           (moderate — bounded scan)
+```
+
+In QueryBuilder:
+```java
+params.put("fulltext", "villa*");
+params.put("fulltext.relPath", "jcr:content");
+```
+
+In JCR-SQL2:
+```sql
+SELECT * FROM [cq:Page] WHERE CONTAINS([jcr:content/jcr:title], 'villa*')
+```
+
+**Wildcards and stemming conflict:** if stemming is active, "villas" was stored as "villa." Searching "villa*" matches "villa" and stemmed terms starting with "villa" — potentially unexpected results. For wildcard-heavy use cases, consider a separate index without stemming.
+
+**Leading wildcards (`*word`) are always slow** — avoid in production on large repositories.
+
+---
+
+### Fuzzy Search
+
+Matches words within an edit distance (Levenshtein — number of single-character edits):
+
+```java
+params.put("fulltext", "villa~");    // default distance 2
+params.put("fulltext", "villa~1");   // distance 1: one character different
+```
+
+Practical use: user types "beachfrunt" (typo) → fuzzy~1 matches "beachfront" (one character different) → result returned instead of zero results.
+
+---
+
+### Relevance Scoring (TF-IDF)
+
+When no explicit `orderby` is set, results rank by `@jcr:score` using TF-IDF:
+
+**TF (Term Frequency):** how many times the search term appears in this document — more = higher score.
+
+**IDF (Inverse Document Frequency):** how rare the term is across all documents — rarer terms score higher. "beachfront" in 5 pages scores higher than "the" in 500,000 pages.
+
+**Field boost:** matches in boosted fields score higher:
+```xml
+<title name="jcr:content/jcr:title" analyzed="true" boost="2.0"/>
+<!-- A title match is worth twice a body text match -->
+```
+
+---
+
+### Faceted Search
+
+Facets = aggregate counts by field value across the entire result set:
+
+```
+Search: "available villa" → 100 results
+Facets: propertyType → { villa: 45, apartment: 32, house: 23 }
+        status       → { available: 78, rented: 22 }
+```
+
+Enable in index definition:
+```xml
+<propertyType name="jcr:content/propertyType" propertyIndex="true" facets="true"/>
+```
+
+In QueryBuilder:
+```java
+params.put("facetextract.1_property", "jcr:content/propertyType");
+params.put("facetextract.1_property.count", "10");
+// result.getFacets() → {"villa":45, "apartment":32, "house":23}
+```
+
+---
+
+### Full End-to-End Search Flow (How Everything Connects)
+
+```
+YOU SEARCH: "beachfront villa, propertyType=villa, price < 500000"
+    ↓
+Oak Query Planner evaluates all indexes by cost:
+  default lucene:          cost=50,000   (covers everything, not selective)
+  propertyListingIndex:    cost=2.3      (covers cq:Page + has propertyType)
+  → PICKS propertyListingIndex
+    ↓
+Lucene dictionary binary search:
+  "beachfront" → 23 comparisons → [doc_45, doc_234, doc_567]
+  "villa"      → 23 comparisons → [doc_45, doc_123, doc_234]
+  Merge-join intersect           → [doc_45, doc_234]
+    ↓
+Filter: propertyType B-tree lookup "villa" → [doc_45, doc_234, doc_89]
+  Intersect with full-text:                 → [doc_45, doc_234]
+    ↓
+Filter: numeric range price < 500000
+  doc_234 has price=1,200,000 → eliminated
+  Remaining:                                → [doc_45]
+    ↓
+Sort by price (ordered Double field — pre-sorted in index)
+    ↓
+Return doc_45 → Oak reads JCR node from repository
+    ↓
+Result: /content/sibi-aem-one/en/properties/beachfront-villa-maldives
+
+Total operations: ~100 comparisons. Under 1ms for any repository size.
+Traversal alternative: 500,000 JCR node reads × 1ms each = 500 seconds.
+```
+
+---
+
+### Summary Cheat Sheet
+
+| Need | Solution |
+|---|---|
+| Exact match on custom property | Lucene index with `propertyIndex=true` |
+| Full-text keyword search | `analyzed=true` + `nodeScopeIndex=true` |
+| Partial word (`villa*`) | Lucene fulltext with wildcard |
+| Typo-tolerant search | Lucene fulltext with `~` operator |
+| Sort by custom property | `ordered=true` on that property |
+| Faceted counts | `facets=true` on that property |
+| Stemming | Add `PorterStem` filter to `analyzers/default` |
+| Stop words | Add `Stop` filter to `analyzers/default` |
+| Query using traversal | Add `p.explain=true`, check JMX slow queries, create targeted index |
+| Newly saved content not searchable | Normal — async indexer ~5s lag; use property index for instant consistency |
+
+---
+
+### Common Interview Questions — Lucene & Search
+
+**Q: What is the difference between `analyzed=true` and `propertyIndex=true`?**
+`propertyIndex=true` enables exact equality and range queries on a property — it uses a B-tree structure, not Lucene's inverted index. `analyzed=true` runs the value through the Analyzer chain (tokenise, lowercase, stem) and adds it to the inverted index — required for full-text search where you want "villas" to match "villa."
+
+**Q: Why does newly saved content not appear immediately in a Lucene search?**
+Lucene indexes update asynchronously on a background lane running every ~5 seconds. This is by design — synchronous Lucene indexing inside a JCR commit would make every save dramatically slower. Property indexes update synchronously if you need immediate consistency.
+
+**Q: What happens if you don't set `evaluatePathRestrictions=true`?**
+The index returns results from the entire repository regardless of the `path` restriction in your query. Oak then post-filters — but this means the index returns far more results than needed, wasting memory and time.
+
+**Q: How do you find which index a query is actually using?**
+Add `p.explain=true` to your QueryBuilder URL. The response shows the chosen index and its estimated cost. If it shows "traversal" your query doesn't match any index.
+
+**Q: Why is a leading wildcard search (`*front`) slow?**
+Lucene finds a term like "villa*" by scanning the sorted dictionary forward from "villa" — an efficient bounded scan. A leading wildcard (`*front`) has no starting point — Lucene must compare the suffix against every single term in the dictionary. There is no shortcut.
+
+**Q: What is the relationship between stemming at index time and query time?**
+They must use the same Analyzer chain. If "villas" is stemmed to "villa" at index time, then the search query "villas" must also be stemmed to "villa" at query time — otherwise the query term "villas" won't match the index term "villa." Oak applies the same `analyzers/default` definition to both sides automatically.
+
+**Q: How do you trigger reindexing after deploying a new index definition?**
+Set `reindex=Boolean(true)` on the index node in CRXDE. Oak detects this, reindexes all existing content matching the index definition, then sets it back to `false`. For large repositories, use oak-run.jar's offline reindex to avoid pausing the JVM.

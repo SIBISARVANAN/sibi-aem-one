@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  INDEX 2: propertyListingPropertyIndex
+  Type: property (not lucene)
+
+  Why a separate property index when Index 1 already has propertyIndex=true?
+
+  A Lucene index's propertyIndex capability is powerful but heavyweight —
+  every query against it goes through the full Lucene query machinery.
+  For ultra-simple, high-frequency lookups (e.g. "give me all pages with
+  sling:resourceType = X", which the Sling resolver does on every request),
+  a plain Oak property index is lighter, faster, and updates synchronously
+  inside the same JCR commit — no 5-second async lag.
+
+  Rule of thumb:
+    - Simple equality on ONE property, needs instant consistency → property index
+    - Full-text, multi-property, facets, sort, range → lucene index
+
+  This index covers the agent page lookup: given an agent's ID (stored as
+  jcr:content/agentId), find their profile page instantly. This is called
+  on every property listing render to link to the agent — must be synchronous
+  and fast. Async 5-second lag is unacceptable here.
+-->
+<jcr:root xmlns:jcr="http://www.jcp.org/jcr/1.0"
+          xmlns:oak="http://jackrabbit.apache.org/oak/ns/1.0"
+          jcr:primaryType="oak:QueryIndexDefinition"
+
+          type="property"
+
+          <!--
+            No "async" attribute = synchronous update.
+            The index updates inside the same JCR commit — immediately consistent.
+            Trade-off: every save of a node matching this index is slightly slower.
+            Acceptable for agent profile pages which are rarely edited.
+          -->
+
+          propertyNames="[jcr:content/agentId]"
+
+          <!--
+            declaringNodeTypes: Oak only indexes nodes of these types.
+            Keeps the index small — only cq:Page nodes with agentId are indexed.
+          -->
+          declaringNodeTypes="[cq:Page]"
+
+          includedPaths="[/content/sibi-aem-one/en/agents]"/>
