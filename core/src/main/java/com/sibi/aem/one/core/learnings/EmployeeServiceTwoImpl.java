@@ -15,6 +15,8 @@ public class EmployeeServiceTwoImpl implements EmployeeServiceTwo {
     @Reference
     ResourceResolverFactory resourceResolverFactory;
 
+    private String localField = "Sarvanan";
+
     @Override
     public String getDepartment(String path) {
         try(ResourceResolver resourceResolver = resourceResolverFactory.getServiceResourceResolver(Collections.emptyMap())) {
@@ -26,5 +28,28 @@ public class EmployeeServiceTwoImpl implements EmployeeServiceTwo {
         } catch (LoginException e) {
             return null;
         }
+    }
+
+    @Override
+    public String getLocalField() {
+        return localField;
+    }
+
+    @Override
+    public String getEmployeeDetails() {
+        return "Department : " + getEngineeringDepartment();
+    }
+
+    @Override
+    public String getFormattedEmployeeDetails() {
+        return "Department : " + getFormattedEngineeringDepartment();
+    }
+
+    public String getEngineeringDepartment() {
+        return "Engineering";
+    }
+
+    public String getFormattedEngineeringDepartment() {
+        return getEngineeringDepartment().toUpperCase();
     }
 }

@@ -305,6 +305,14 @@ public class PropertySearchModel {
     public String getCurrentSortProperty()   { return currentSortProperty; }
     public String getCurrentSortOrder()      { return currentSortOrder; }
     public int getCurrentPage()              { return currentPage; }
+    /**
+     * Returns the current page number as a 1-based display value.
+     * currentPage is 0-based internally (offset calculation).
+     * HTL cannot do arithmetic (currentPage + 1), so this is done in Java.
+     */
+    public int getDisplayPageNumber() {
+        return currentPage + 1;
+    }
 
     // ── Dialog config getters — for conditional rendering in HTL ─────────────
 

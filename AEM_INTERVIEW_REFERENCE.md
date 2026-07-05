@@ -1464,6 +1464,127 @@ orGroup.add(new Predicate("property").set("property", "jcr:content/category").se
 **Q: How do you use QueryBuilder in a unit test?**  
 Mock `QueryBuilder` and `SearchResult` with Mockito, or use the `ResourceResolverMock` from wcm.io test helpers which includes a basic in-memory query engine.
 
+### AEM Search & Indexing: Advanced Interview Preparation Guide
+
+This guide covers the core mechanics of AEM search, Apache Oak indexing, Lucene scoring, and the architectural principles behind faceted search. It bridges the gap between high-level concepts (layman's terms) and deep-dive technical architecture.
+
+#### 1. Lucene Relevance Scoring (TF-IDF)
+
+When AEM executes a full-text search, the underlying engine (Lucene) uses a mathematical formula to rank the results. The most common algorithm is **TF-IDF**.
+
+##### The Core Concept
+
+A document is considered highly relevant if the search term appears in it *frequently*, but only if that term is relatively *rare* across the entire AEM repository.
+
+* **TF (Term Frequency):** How many times the search term appears in a specific document. The higher the frequency, the higher the score.
+
+* **IDF (Inverse Document Frequency):** How rare the term is across *all* indexed documents. Common words ("the", "page") are penalized; rare words ("Omnichannel") are heavily rewarded.
+
+##### Additional Scoring Factors
+
+* **Field Length Normalization (lengthNorm):** Lucene penalizes long fields. A match in a short `jcr:title` scores higher than a match in a massive `jcr:description`.
+
+* **Index-Time Boosts:** Developers can manually boost specific properties in the Oak index (e.g., making a match in `jcr:title` worth 4x more than a match in the body text).
+
+* **Coordination Factor (coord):** Rewards documents that contain *multiple* terms from a multi-word search query.
+
+**Interview Tip:** To debug these scores in AEM, use the **Query Builder Debugger** (`/libs/cq/search/content/querydebug.html`), execute a query, and check "Extract explain plan" to see the exact math Lucene applied.
+
+#### 2. Faceted Search (The "Smart Filters")
+
+##### The Layman's Explanation
+
+A facet is a **smart filter**. Unlike a regular filter, a facet does two things:
+
+1. It categorizes the search results.
+
+2. It mathematically counts the data to show you exactly how many items match that category *before* you click it.
+
+*Analogy:* Buying a laptop online. You search "Laptops". The sidebar doesn't just say "Brands". It says "Apple (1,500), Asus (500)". If you click Asus, the "Color" filter instantly updates to remove colors Asus doesn't make, preventing you from ever hitting a "0 results found" dead end.
+
+##### The Technical Handshake
+
+For facets to work in AEM, there must be a strict handshake between the query and the database index.
+
+1. **The Request (Query Builder):** The frontend asks AEM for facets by passing the property and a master switch:
+   1_property=jcr:content/author
+   p.facets=true
+
+2. **The Permission (Oak Index):** AEM will only calculate this if the underlying index is configured for it. In the Lucene index rules for the `author` property, a developer must set:
+
+* `propertyIndex = true`
+
+* `facets = true`
+
+##### JSON Response Structure
+
+A faceted query returns two main blocks of data:
+
+* **`hits`:** The actual array of search results (the pages).
+
+* **`facets`:** A dictionary object containing the categories and their exact counts. The frontend uses this object to render the sidebar UI.
+
+#### 3. Under the Hood: Dynamic Recalculation & Performance
+
+##### How Facets Calculate Dynamically
+
+AEM does **not** pre-calculate facet counts, nor does it read actual JCR nodes during a query to count them. It uses a two-step process against in-memory data structures:
+
+1. **The Match:** The user searches for "Marketing" and clicks the filter "Author: Jane". A new query fires. Lucene finds the subset of matching documents (e.g., 400 pages).
+
+2. **The Tally:** Lucene takes those 400 internal Document IDs and cross-references them against an ultra-fast, in-memory structure called **DocValues** (a columnar storage map). It tallies the counts for other facets (like `cq:tags`) instantly based *only* on those 400 IDs.
+
+##### Security and ACLs (The Performance Bottleneck)
+
+AEM cannot show a count for a node a user isn't allowed to see.
+
+* Checking ACL permissions for every single node in a 50,000-result search would crash the server.
+
+* **The Fix (AEM 6.5):** Set `secure=statistical` on the facet index definition. Oak checks permissions for a random sample (e.g., 1,000 nodes) and applies that permission ratio to the total index count, providing a highly accurate estimate without the performance hit.
+
+* **The Fix (AEM as a Cloud Service):** Search is offloaded entirely to Elasticsearch, which handles these aggregations natively off the AEM JVM.
+
+#### 4. The Oak Query Planner
+
+The Query Planner is AEM's "Auctioneer." It ensures queries execute efficiently by avoiding repository traversal.
+
+##### The Cost-Based Model
+
+1. **Parsing:** The planner breaks the query into core restrictions (e.g., Node Type = `cq:Page`, Property = `jcr:title`).
+
+2. **The Bid:** The planner asks all indexes under `/oak:index` how much it would "cost" them to execute the query.
+
+* *Cost = The mathematical estimate of how many nodes the index has to read.*
+
+3. **The Award:** The index with the lowest cost wins the execution rights.
+
+##### The Traversal Nightmare
+
+If you query an unindexed property, no custom index can bid on it. The planner is forced to use a basic Node Type index (or the root path), which bids a massive cost (e.g., 100,000). AEM must now manually traverse every node to check the property, causing a `TraversalWarning` and severe performance degradation.
+
+#### 5. Advanced Indexing: Memory and Cardinality
+
+You can create a custom index covering multiple properties with `facets=true`. However, you must deeply understand how this impacts server RAM.
+
+##### Columnar Storage (DocValues)
+
+When you set `facets=true`, Lucene builds a separate, in-memory "spreadsheet" for that property mapping the `Document ID` to the `Property Value`.
+
+##### The Cardinality Trap & Dictionary Encoding
+
+To save space, Lucene doesn't store heavy text strings directly in the spreadsheet. It uses **Dictionary Encoding** (Global Ordinals). It splits the data into two parts:
+
+1. **The Dictionary:** A list of unique text values.
+
+2. **The Pointer Array:** The "spreadsheet" mapping Document IDs to the integer IDs of the Dictionary.
+
+**Why Cardinality (Number of Unique Values) Matters:**
+
+* **Low Cardinality (e.g., `status` - Draft, Published):** There are only 2 unique values. The dictionary in RAM holds just 2 text strings. The pointer array holds 100,000 tiny integers. This is extremely fast and lightweight.
+
+* **High Cardinality (e.g., `jcr:title`):** If you have 100,000 pages, you have 100,000 unique titles. The dictionary is forced to load 100,000 unique, heavy text strings directly into the JVM heap.
+
+**Interview Takeaway:** Setting `facets=true` on high-cardinality, free-text properties will bloat the JVM heap and eventually cause `OutOfMemoryError` (OOM) crashes in AEM 6.5. Facets should strictly be used for categorical, low-cardinality data.
 ---
 
 ## 13. Dispatcher
@@ -1954,6 +2075,17 @@ HTL is AEM's server-side templating language. It replaces JSP and enforces XSS-s
 | `attribute` | HTML attribute name (dynamic attributes) |
 | `text` | Explicit text context (same as default) |
 | `unsafe` | No escaping at all — **never use for user input** |
+
+### HTL Rules to Remember
+
+| Rule                | Wrong                         | Right                                           |
+|---------------------|-----------------------------|-------------------------------------------------|
+| Arithmetic          | `${model.page + 1}`         | Add getter to model, use `${model.displayPage}` |
+| Boolean attribute | `${x ? 'selected' : ''}`      | `data-sly-attribute.selected="${x}"` |
+| String comparison   | `${'literal' == model.val}` | `${model.val == 'literal'}` |
+| List contains check | Works as-is                 | `${model.list contains 'value'}` |
+| XSS in href         | `href="${model.path}"`      | `href="${model.path @ context='uri'}"` |
+| XSS in attribute    | `value="${model.val}"`      | `value="${model.val @ context='attribute'}"` |
 
 ### Component Dialog — Key Touch UI Resource Types
 

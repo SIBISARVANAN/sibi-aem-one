@@ -10,11 +10,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.Field;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith({MockitoExtension.class})
 public class EmployeeServiceTwoImplTest {
@@ -55,5 +56,35 @@ public class EmployeeServiceTwoImplTest {
     void getLoginException() throws LoginException {
         when(resourceResolverFactory.getServiceResourceResolver(anyMap())).thenThrow(new LoginException());
         assertNull(employeeService.getDepartment("/content/department"));
+    }
+
+    @Test
+    void getLocalField() throws NoSuchFieldException, IllegalAccessException {
+        Field localField = EmployeeServiceTwoImpl.class.getDeclaredField("localField");
+        localField.setAccessible(true);
+        localField.set(employeeService, "Sarvanan");
+        assertEquals("Sarvanan", employeeService.getLocalField());
+    }
+
+    @Test
+    void getModifiedLocalField() throws NoSuchFieldException, IllegalAccessException {
+        Field localField = EmployeeServiceTwoImpl.class.getDeclaredField("localField");
+        localField.setAccessible(true);
+        localField.set(employeeService, "Shravan");
+        assertEquals("Shravan", employeeService.getLocalField());
+    }
+
+    @Test
+    void getEmployeeDetails() {
+        EmployeeServiceTwoImpl employeeServiceSpy = spy(new EmployeeServiceTwoImpl());
+        doReturn("HR").when(employeeServiceSpy).getEngineeringDepartment();
+        assertEquals("Department : HR", employeeServiceSpy.getEmployeeDetails());
+    }
+
+    @Test
+    void getFormattedEmployeeDetails() {
+        EmployeeServiceTwoImpl employeeServiceSpy = spy(new EmployeeServiceTwoImpl());
+        doReturn("HR").when(employeeServiceSpy).getFormattedEngineeringDepartment();
+        assertEquals("Department : HR", employeeServiceSpy.getFormattedEmployeeDetails());
     }
 }

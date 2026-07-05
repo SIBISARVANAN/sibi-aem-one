@@ -1,11 +1,7 @@
-<!--/* Property Search Component HTL
-       Uses PropertySearchModel for all data — no business logic in HTL.
-       The model reads dialog-authored config AND request parameters.
-*/-->
-<sly data-sly-use.model="com.sibi.aem.one.core.models.search.PropertySearchModel"
-     data-sly-use.clientLib="/libs/granite/sightly/templates/clientlib.html"/>
+<sly data-sly-use.model="com.sibi.aem.one.core.models.PropertySearchModel"
+     data-sly-use.clientLib="/libs/granite/sightly/templates/clientlib.html"></sly>
 
-<sly data-sly-call="${clientLib.css @ categories='sibi-aem-one.propertysearch'}"/>
+<sly data-sly-call="${clientLib.css @ categories='sibi-aem-one.propertysearch'}"></sly>
 
 <div class="property-search cmp-propertysearch">
 
@@ -21,25 +17,39 @@
             <button type="submit" class="cmp-propertysearch__submit">Search</button>
         </div>
 
-        <!--/* ── FILTERS (shown/hidden by dialog config) ─────────────── */-->
+        <!--/* ── FILTERS ──────────────────────────────────────────────── */-->
         <div class="cmp-propertysearch__filters">
 
-            <!--/* Property Type filter - only rendered when dialog enables it */-->
+            <!--/* Property Type filter */-->
             <div class="cmp-propertysearch__filter-group"
                  data-sly-test="${model.showPropertyTypeFilter}">
                 <label>Property Type</label>
                 <select name="types" class="cmp-propertysearch__select">
                     <option value="">All Types</option>
+
+                    <!--/* data-sly-attribute.selected takes a boolean expression.
+                         HTL renders selected="selected" if true, omits if false.
+                         "contains" operator checks if the list contains the value. */-->
                     <option value="villa"
-                        ${model.currentTypes contains 'villa' ? 'selected' : ''}>Villa</option>
+                            data-sly-attribute.selected="${model.currentTypes contains 'villa'}">
+                        Villa
+                    </option>
                     <option value="apartment"
-                        ${model.currentTypes contains 'apartment' ? 'selected' : ''}>Apartment</option>
+                            data-sly-attribute.selected="${model.currentTypes contains 'apartment'}">
+                        Apartment
+                    </option>
                     <option value="house"
-                        ${model.currentTypes contains 'house' ? 'selected' : ''}>House</option>
+                            data-sly-attribute.selected="${model.currentTypes contains 'house'}">
+                        House
+                    </option>
                     <option value="penthouse"
-                        ${model.currentTypes contains 'penthouse' ? 'selected' : ''}>Penthouse</option>
+                            data-sly-attribute.selected="${model.currentTypes contains 'penthouse'}">
+                        Penthouse
+                    </option>
                     <option value="plot"
-                        ${model.currentTypes contains 'plot' ? 'selected' : ''}>Plot / Land</option>
+                            data-sly-attribute.selected="${model.currentTypes contains 'plot'}">
+                        Plot / Land
+                    </option>
                 </select>
             </div>
 
@@ -50,11 +60,17 @@
                 <select name="statuses" class="cmp-propertysearch__select">
                     <option value="">All Statuses</option>
                     <option value="available"
-                        ${model.currentStatuses contains 'available' ? 'selected' : ''}>Available</option>
+                            data-sly-attribute.selected="${model.currentStatuses contains 'available'}">
+                        Available
+                    </option>
                     <option value="rented"
-                        ${model.currentStatuses contains 'rented' ? 'selected' : ''}>Rented</option>
+                            data-sly-attribute.selected="${model.currentStatuses contains 'rented'}">
+                        Rented
+                    </option>
                     <option value="sold"
-                        ${model.currentStatuses contains 'sold' ? 'selected' : ''}>Sold</option>
+                            data-sly-attribute.selected="${model.currentStatuses contains 'sold'}">
+                        Sold
+                    </option>
                 </select>
             </div>
 
@@ -62,11 +78,15 @@
             <div class="cmp-propertysearch__filter-group cmp-propertysearch__filter-group--price"
                  data-sly-test="${model.showPriceFilter}">
                 <label>Price Range</label>
-                <input type="number" name="priceMin" placeholder="Min price"
+                <input type="number"
+                       name="priceMin"
+                       placeholder="Min price"
                        value="${model.currentPriceMin @ context='attribute'}"
                        class="cmp-propertysearch__price-input"/>
                 <span>to</span>
-                <input type="number" name="priceMax" placeholder="Max price"
+                <input type="number"
+                       name="priceMax"
+                       placeholder="Max price"
                        value="${model.currentPriceMax @ context='attribute'}"
                        class="cmp-propertysearch__price-input"/>
             </div>
@@ -75,8 +95,12 @@
             <div class="cmp-propertysearch__filter-group"
                  data-sly-test="${model.showFeaturedFilter}">
                 <label>
-                    <input type="checkbox" name="featured" value="true"
-                           ${model.currentFeaturedOnly ? 'checked' : ''}/>
+                    <!--/* data-sly-attribute.checked takes a boolean — renders
+                         checked="checked" if true, omits attribute if false */-->
+                    <input type="checkbox"
+                           name="featured"
+                           value="true"
+                           data-sly-attribute.checked="${model.currentFeaturedOnly}"/>
                     Featured Only
                 </label>
             </div>
@@ -85,16 +109,29 @@
             <div class="cmp-propertysearch__filter-group">
                 <label>Sort By</label>
                 <select name="sortBy" class="cmp-propertysearch__select">
+                    <!--/* Variable on LEFT, string literal on RIGHT in comparisons */-->
                     <option value="jcr:content/price"
-                        ${'jcr:content/price' == model.currentSortProperty ? 'selected' : ''}>Price</option>
+                            data-sly-attribute.selected="${model.currentSortProperty == 'jcr:content/price'}">
+                        Price
+                    </option>
                     <option value="jcr:content/availableFrom"
-                        ${'jcr:content/availableFrom' == model.currentSortProperty ? 'selected' : ''}>Available From</option>
+                            data-sly-attribute.selected="${model.currentSortProperty == 'jcr:content/availableFrom'}">
+                        Available From
+                    </option>
                     <option value="@jcr:score"
-                        ${'@jcr:score' == model.currentSortProperty ? 'selected' : ''}>Relevance</option>
+                            data-sly-attribute.selected="${model.currentSortProperty == '@jcr:score'}">
+                        Relevance
+                    </option>
                 </select>
                 <select name="sortOrder" class="cmp-propertysearch__select">
-                    <option value="asc" ${'asc' == model.currentSortOrder ? 'selected' : ''}>Ascending</option>
-                    <option value="desc" ${'desc' == model.currentSortOrder ? 'selected' : ''}>Descending</option>
+                    <option value="asc"
+                            data-sly-attribute.selected="${model.currentSortOrder == 'asc'}">
+                        Ascending
+                    </option>
+                    <option value="desc"
+                            data-sly-attribute.selected="${model.currentSortOrder == 'desc'}">
+                        Descending
+                    </option>
                 </select>
             </div>
 
@@ -105,9 +142,10 @@
     <!--/* ── RESULTS AREA ──────────────────────────────────────────────── */-->
     <div class="cmp-propertysearch__results-area" data-sly-test="${model.searchExecuted}">
 
-        <!--/* Meta row: total count + query time */-->
+        <!--/* Meta: total count + optional query time */-->
         <div class="cmp-propertysearch__meta" data-sly-test="${!model.noResults}">
             <span>${model.totalMatches} properties found</span>
+            <!--/* showQueryTime maps to isShowQueryTime() on the model */-->
             <span data-sly-test="${model.showQueryTime}"> in ${model.queryTimeMs}ms</span>
         </div>
 
@@ -116,7 +154,7 @@
             <p>${model.noResultsMessage}</p>
         </div>
 
-        <!--/* ── FACETS SIDEBAR ─────────────────────────────────────── */-->
+        <!--/* ── FACETS + CARDS ─────────────────────────────────────── */-->
         <div class="cmp-propertysearch__layout" data-sly-test="${!model.noResults}">
 
             <aside class="cmp-propertysearch__facets">
@@ -126,6 +164,8 @@
                      data-sly-test="${model.showPropertyTypeFilter}">
                     <h3 class="cmp-propertysearch__facet-title">Property Type</h3>
                     <ul class="cmp-propertysearch__facet-list">
+                        <!--/* data-sly-list on a Map iterates Map.Entry objects:
+                             facet.key = field value ("villa"), facet.value = count (45) */-->
                         <sly data-sly-list.facet="${model.propertyTypeFacets}">
                             <li class="cmp-propertysearch__facet-item">
                                 <a href="?q=${model.currentQuery @ context='uri'}&types=${facet.key @ context='uri'}">
@@ -153,12 +193,15 @@
 
             <!--/* ── RESULT CARDS ──────────────────────────────────── */-->
             <section class="cmp-propertysearch__cards">
-
                 <sly data-sly-list.hit="${model.hits}">
-                    <article class="cmp-propertysearch__card
-                                    ${hit.featured ? 'cmp-propertysearch__card--featured' : ''}">
+                    <article class="cmp-propertysearch__card"
+                             data-sly-attribute.class="${hit.featured ?
+                                 'cmp-propertysearch__card cmp-propertysearch__card--featured' :
+                                 'cmp-propertysearch__card'}">
+
                         <div class="cmp-propertysearch__card-badge"
                              data-sly-test="${hit.featured}">Featured</div>
+
                         <h3 class="cmp-propertysearch__card-title">
                             <a href="${hit.path @ context='uri'}.html">${hit.title}</a>
                         </h3>
@@ -170,9 +213,9 @@
                         </p>
                         <a class="cmp-propertysearch__card-cta"
                            href="${hit.path @ context='uri'}.html">View Listing</a>
+
                     </article>
                 </sly>
-
             </section>
 
         </div><!--/* end layout */-->
@@ -186,8 +229,10 @@
                 &larr; Previous
             </a>
 
+            <!--/* model.displayPageNumber returns currentPage + 1
+                 — arithmetic is done in Java, not in HTL */-->
             <span class="cmp-propertysearch__pagination-info">
-                Page ${model.currentPage + 1}
+                Page ${model.displayPageNumber}
             </span>
 
             <a class="cmp-propertysearch__pagination-next"
@@ -200,11 +245,11 @@
 
     </div><!--/* end results area */-->
 
-    <!--/* Initial state — no search run yet */-->
+    <!--/* Initial state — shown before any search is run */-->
     <div class="cmp-propertysearch__prompt" data-sly-test="${!model.searchExecuted}">
         <p>Enter a search term or select filters above to find properties.</p>
     </div>
 
 </div>
 
-<sly data-sly-call="${clientLib.js @ categories='sibi-aem-one.propertysearch'}"/>
+<sly data-sly-call="${clientLib.js @ categories='sibi-aem-one.propertysearch'}"></sly>
