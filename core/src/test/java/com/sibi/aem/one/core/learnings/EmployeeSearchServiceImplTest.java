@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -19,11 +20,9 @@ import javax.jcr.Session;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class EmployeeSearchServiceImplTest {
@@ -132,5 +131,71 @@ public class EmployeeSearchServiceImplTest {
         assertEquals(2, names.size());
     }
 
+    @Test
+    void getEmployeesObject() throws LoginException, RepositoryException {
+        when(searchResult.getHits()).thenReturn(List.of(hit1, hit2, hit3));
+        when(hit1.getResource()).thenReturn(resource1);
+        when(resource1.getValueMap()).thenReturn(valueMap1);
+        when(valueMap1.containsKey("name")).thenReturn(Boolean.TRUE);
+        when(valueMap1.containsKey("department")).thenReturn(Boolean.TRUE);
+        when(valueMap1.get("name", String.class)).thenReturn("Sibi");
+        when(valueMap1.get("department", String.class)).thenReturn("Engineering");
+        Employee e1 = new Employee("Sibi", "Engineering");
+        when(hit2.getResource()).thenReturn(resource2);
+        when(resource2.getValueMap()).thenReturn(valueMap2);
+        when(valueMap2.get("name", String.class)).thenReturn("John");
+        when(valueMap2.get("department", String.class)).thenReturn("HR");
+        when(valueMap2.containsKey("name")).thenReturn(Boolean.TRUE);
+        when(valueMap2.containsKey("department")).thenReturn(Boolean.TRUE);
+        Employee e2 = new Employee("John", "HR");
+        when(hit3.getResource()).thenReturn(resource3);
+        when(resource3.getValueMap()).thenReturn(valueMap3);
+        when(valueMap3.containsKey("name")).thenReturn(Boolean.TRUE);
+        when(valueMap3.containsKey("department")).thenReturn(Boolean.TRUE);
+        when(valueMap3.get("name", String.class)).thenReturn("Alice");
+        when(valueMap3.get("department", String.class)).thenReturn("Finance");
+        Employee e3 = new Employee("Alice", "Finance");
+        List<Employee> employees = employeeSearchServiceImpl.getEmployees();
+        assertEquals(employees.get(0).getName(), e1.getName());
+        assertEquals(employees.get(0).getDepartment(), e1.getDepartment());
+        assertEquals(employees.get(1).getName(), e2.getName());
+        assertEquals(employees.get(1).getDepartment(), e2.getDepartment());
+        assertEquals(employees.get(2).getName(), e3.getName());
+        assertEquals(employees.get(2).getDepartment(), e3.getDepartment());
+    }
 
+    @Test
+    void getEmployeesObject2() throws LoginException, RepositoryException {
+        when(searchResult.getHits()).thenReturn(List.of(hit1, hit2, hit3));
+        when(hit1.getResource()).thenReturn(resource1);
+        when(resource1.getValueMap()).thenReturn(valueMap1);
+        when(valueMap1.containsKey("name")).thenReturn(Boolean.TRUE);
+        when(valueMap1.get("name", String.class)).thenReturn("Sibi");
+        Employee e1 = new Employee("Sibi", null);
+        when(hit2.getResource()).thenReturn(resource2);
+        when(resource2.getValueMap()).thenReturn(valueMap2);
+        when(valueMap2.containsKey("name")).thenReturn(Boolean.TRUE);
+        when(valueMap2.containsKey("department")).thenReturn(Boolean.TRUE);
+        when(valueMap2.get("name", String.class)).thenReturn("John");
+        when(valueMap2.get("department", String.class)).thenReturn("HR");
+        Employee e2 = new Employee("John", "HR");
+        when(hit3.getResource()).thenReturn(resource3);
+        when(resource3.getValueMap()).thenReturn(valueMap3);
+        when(valueMap3.containsKey("name")).thenReturn(Boolean.FALSE);
+        when(valueMap3.containsKey("department")).thenReturn(Boolean.TRUE);
+        when(valueMap3.get("department", String.class)).thenReturn("Finance");
+        List<Employee> employees = employeeSearchServiceImpl.getEmployees();
+        assertEquals(employees.get(0).getName(), e1.getName());
+        assertEquals(employees.get(0).getDepartment(), e1.getDepartment());
+        assertEquals(employees.get(1).getName(), e2.getName());
+        assertEquals(employees.get(1).getDepartment(), e2.getDepartment());
+        assertThrows(IndexOutOfBoundsException.class, () -> employeeSearchServiceImpl.getEmployees().get(2));
+    }
+
+    @Test
+    void getEmployeesObject3() throws LoginException {
+        when(resourceResolverFactory.getServiceResourceResolver(anyMap())).thenThrow(new LoginException());
+        List<Employee> employees = employeeSearchServiceImpl.getEmployees();
+        assertTrue(employees.isEmpty());
+    }
 }

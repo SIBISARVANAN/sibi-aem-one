@@ -5,4 +5,6 @@ import java.util.List;
 public interface EmployeeSearchService {
 
     List<String> getEmployeeNames();
+
+    List<Employee> getEmployees();
 }
