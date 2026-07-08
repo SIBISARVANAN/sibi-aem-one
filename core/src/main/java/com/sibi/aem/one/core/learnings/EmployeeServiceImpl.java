@@ -9,4 +9,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     public String formatName(String name) {
         return "Employee : " + name;
     }
+
+    @Override
+    public void cleanupEmployees() {
+    }
 }

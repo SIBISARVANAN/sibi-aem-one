@@ -3448,3 +3448,296 @@ They must use the same Analyzer chain. If "villas" is stemmed to "villa" at inde
 
 **Q: How do you trigger reindexing after deploying a new index definition?**
 Set `reindex=Boolean(true)` on the index node in CRXDE. Oak detects this, reindexes all existing content matching the index definition, then sets it back to `false`. For large repositories, use oak-run.jar's offline reindex to avoid pausing the JVM.
+
+
+---------
+
+## 32. AEM Maven Plugins Reference
+
+**Purpose:** A senior-level reference for the Maven plugins found in a typical AEM multi-module project (`core`, `ui.apps`/`all`, `ui.content`, `ui.config`), covering what each plugin actually does, key configuration, and common misconfiguration symptoms — the kind of detail interviewers probe for beyond "I just add dependencies."
+
+---
+
+### 1. Concept — Dependencies vs Plugins
+
+Before the individual plugins: it's worth being explicit about *why* this distinction matters, since it's the root of the "I only touch dependencies" gap.
+
+- **Dependencies** (`<dependencies>`) are code your project *compiles against and/or bundles* — libraries your classes call.
+- **Plugins** (`<build><plugins>`) are tools that run *during the build lifecycle itself* — they compile, test, package, transform, and deploy your project. They don't add code to your classpath at runtime; they control what happens when you type `mvn <phase>`.
+
+Every `mvn` command (`compile`, `test`, `package`, `verify`, `install`, `deploy`) is a **phase** in Maven's build lifecycle, and each phase runs zero or more plugin **goals** bound to it. When you run `mvn clean install -PautoInstallPackage`, you are triggering a chain of plugin goals across many phases — the plugins are the actual machinery; the phase names are just labels.
+
+---
+
+### 2. maven-compiler-plugin
+
+#### 2.1 What it does
+Compiles your `.java` source files into `.class` bytecode. Bound to the `compile` phase (and `test-compile` for test sources).
+
+#### 2.2 Key configuration
+
+```xml
+<plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-compiler-plugin</artifactId>
+  <configuration>
+    <source>11</source>
+    <target>11</target>
+    <!-- or, modern equivalent: -->
+    <release>11</release>
+  </configuration>
+</plugin>
+```
+
+#### 2.3 Technicalities
+- `<release>` (Java 9+) is preferred over separate `<source>`/`<target>` — it also constrains which JDK *APIs* are available, not just language syntax, preventing accidental use of a newer API method against an older declared target.
+- AEM as a Cloud Service currently targets Java 11 (with Java 17 support introduced more recently) — a mismatch between this plugin's configured version and the JDK actually used by your CI/Cloud Manager pipeline is a classic "works locally, fails in pipeline" cause.
+- Compiler warnings-as-errors (`<compilerArgument>-Werror</compilerArgument>`) is a stricter option some teams enable — worth knowing whether your project has this on, since it changes how seriously to treat warnings during development.
+
+#### 2.4 Common misconfig symptoms
+| Symptom | Likely cause |
+|---|---|
+| `UnsupportedClassVersionError` at runtime on AEM | Compiled with a newer Java version than the AEM instance/Cloud Service runtime supports |
+| Build passes locally, fails in Cloud Manager pipeline | Different JDK version between local machine and pipeline; `<release>` not pinned explicitly |
+
+---
+
+### 3. maven-bundle-plugin (or bnd-maven-plugin)
+
+#### 3.1 What it does
+This is the plugin that makes AEM development "OSGi development." It takes your compiled classes and generates the OSGi `MANIFEST.MF` — specifically `Bundle-SymbolicName`, `Import-Package`, `Export-Package`, and `Bundle-Version` — turning a plain JAR into a valid OSGi bundle that AEM's Felix container can load, resolve, and activate.
+
+#### 3.2 Key configuration
+
+```xml
+<plugin>
+  <groupId>org.apache.felix</groupId>
+  <artifactId>maven-bundle-plugin</artifactId>
+  <extensions>true</extensions> <!-- required: hooks into the jar packaging lifecycle -->
+  <configuration>
+    <instructions>
+      <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+      <Export-Package>com.realestate.core.api.*</Export-Package>
+      <Import-Package>*</Import-Package>
+      <Sling-Model-Packages>com.realestate.core.models</Sling-Model-Packages>
+    </instructions>
+  </configuration>
+</plugin>
+```
+
+Many current AEM archetypes instead use the newer **bnd-maven-plugin** (`biz.aQute.bnd:bnd-maven-plugin`) with a separate `bnd.bnd` file or inline `<bnd>` block — functionally the same purpose, different tooling generation. Know which one your project uses; the config *syntax* differs even though the *goal* (generate a correct OSGi manifest) is identical.
+
+#### 3.3 Technicalities
+- **`Import-Package` vs `Export-Package` is the single most important concept here.** `Export-Package` declares which of *your own* packages other bundles may use. `Import-Package` declares which *external* packages your bundle needs, and (critically) at what version range. Getting this wrong is the #1 cause of `"Unresolved constraint... package uses conflict"` errors when deploying to AEM.
+- `Import-Package: *` (wildcard, auto-detected by BND analyzing your bytecode) is convenient but can silently import packages you didn't intend to depend on, or miss ones used only via reflection — reflection-based dependencies (Class.forName, dynamic proxies) are invisible to BND's static bytecode analysis and often need to be declared explicitly.
+- `Sling-Model-Packages` tells Sling Models' bundle-scanning where to look for `@Model`-annotated classes at runtime — omitting a package here means your Sling Models simply never get registered, with no obvious error message pointing at this specific cause.
+- **Package versioning ranges** — BND auto-generates version ranges for imported packages based on the exporting bundle's version at build time (e.g., `[1.2,2)`). If a dependency bundle is later upgraded on the AEM instance to a version outside that range, your bundle fails to resolve — a frequent "worked yesterday, broken today after a platform update" bug.
+
+#### 3.4 Common misconfig symptoms
+| Symptom | Likely cause |
+|---|---|
+| Bundle shows "Installed" but not "Active" in Felix Console | Unresolved package import — check the bundle's "Resolution failed" details |
+| Sling Model never gets invoked, no error | `Sling-Model-Packages` doesn't include the model's package |
+| `ClassNotFoundException` at runtime despite the class being in your JAR | Package wasn't exported, or another bundle can't see it due to import/export mismatch |
+| Bundle fails to resolve after an unrelated platform/library upgrade | Auto-generated version range on an imported package no longer matches the new exporter's version |
+
+---
+
+### 4. filevault-package-maven-plugin (formerly content-package-maven-plugin)
+
+#### 4.1 What it does
+Builds the content package `.zip` (for `ui.apps`, `ui.content`, `all`) from your `jcr_root` directory structure and `filter.xml` — this is what actually installs pages, components, configs, and design content into the JCR repository when deployed, as distinct from the bundle plugin's job of installing *code*.
+
+#### 4.2 Key configuration
+
+```xml
+<plugin>
+  <groupId>org.apache.jackrabbit</groupId>
+  <artifactId>filevault-package-maven-plugin</artifactId>
+  <extensions>true</extensions>
+  <configuration>
+    <group>com.realestate</group>
+    <name>realestate.ui.apps</name>
+    <packageType>application</packageType>
+    <filterSource>src/main/content/META-INF/vault/filter.xml</filterSource>
+  </configuration>
+</plugin>
+```
+
+#### 4.3 Technicalities
+- **`filter.xml` defines the "workspace filter" — the set of JCR paths this package owns and will overwrite on install.** This is the single highest-stakes piece of AEM Maven config: a filter root that's too broad (e.g., `/content` instead of `/content/properties`) can wipe out unrelated content on deploy; a filter root missing an intended path means your content silently doesn't deploy at all.
+- `<packageType>` matters for AEM as a Cloud Service specifically — Cloud Manager's pipeline validates that `application` packages (code, OSGi configs, `ui.apps`) and `content` packages (`ui.content`) are correctly separated; mixing them (e.g., putting mutable author content inside an `application`-typed package) is flagged and can fail the Cloud Manager readiness check.
+- Filter rules support `mode="merge"`/`mode="replace"` (and `include`/`exclude` sub-rules) — `replace` (the default) wipes and replaces everything under that root; `merge` only adds/updates what's in the package without deleting siblings not present in the package. Using `replace` on a shared root that other packages or authors also write to is a common way to accidentally delete author-created content on the next deploy.
+- The `all` package typically embeds `core` (the bundle) and `ui.apps`/`ui.content` as sub-packages via `<embeddeds>`/dependency-based packaging — this is why deploying `all` installs everything in one shot, and why a broken filter in a sub-package still breaks the aggregate `all` deployment.
+
+#### 4.4 Common misconfig symptoms
+| Symptom | Likely cause |
+|---|---|
+| Author-created content disappears after a code deploy | Overly broad filter root using `replace` mode covering author-editable content |
+| New component/template doesn't appear after deploy | Missing filter root for that specific path in `filter.xml` |
+| Cloud Manager pipeline fails at "content package validation" | `application` package contains paths that should be in a `content` package, or vice versa |
+
+---
+
+### 5. maven-resources-plugin
+
+#### 5.1 What it does
+Copies non-Java resource files (`.content.xml`, properties files, OSGi config JSON/CFM files under `src/main/resources`) into the build output directory, so they end up correctly placed in the packaged bundle.
+
+#### 5.2 Technicalities
+- Runs in the `process-resources` phase, **before** `compile` — resource filtering (variable substitution like `${project.version}` inside a resource file) happens here if `<filtering>true</filtering>` is configured on the resource directory.
+- A resource "not showing up" after build is very often not a bug in this plugin but a wrong `<resource>`/`<directory>` path in the `<build><resources>` block, or the file simply not being under a recognized resource root.
+
+#### 5.3 Common misconfig symptoms
+| Symptom | Likely cause |
+|---|---|
+| OSGi config file present in source but missing from deployed bundle | Not under a configured `<resources>` directory, or excluded by a resource filter pattern |
+| `${project.version}` literally appears unsubstituted in a deployed file | `<filtering>` not enabled on that resource directory |
+
+---
+
+### 6. maven-jar-plugin
+
+#### 6.1 What it does
+Packages compiled classes + resources into a plain `.jar`, which the bundle plugin (Section 3) then post-processes to inject the OSGi manifest. Bound to the `package` phase.
+
+#### 6.2 Technicalities
+- Usually invisible/default-configured in AEM projects — you'd only touch this directly to customize manifest entries not covered by the bundle plugin, or to exclude specific files from the final JAR (`<excludes>`).
+- If you ever see manifest entries that look like plain-JAR defaults (no `Import-Package`/`Export-Package`) rather than OSGi-flavored ones, it usually means the bundle plugin isn't correctly configured with `<extensions>true</extensions>`, so this plugin's plain output is what actually got deployed.
+
+---
+
+### 7. maven-surefire-plugin
+
+#### 7.1 What it does
+Runs unit tests (anything matching `**/*Test.java` by default) during the `test` phase — this is the plugin actually executing your JUnit/Mockito/AemContext test suite from Phases 6–9.
+
+#### 7.2 Key configuration
+
+```xml
+<plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-surefire-plugin</artifactId>
+  <configuration>
+    <argLine>-Xmx1024m</argLine>
+    <includes>
+      <include>**/*Test.java</include>
+    </includes>
+  </configuration>
+</plugin>
+```
+
+#### 7.3 Technicalities
+- `mvn package`/`mvn install` runs tests by default (via the `test` phase preceding `package` in the lifecycle) — `-DskipTests` skips execution but still compiles test classes; `-Dmaven.test.skip=true` skips both compiling and running, which is a meaningfully different (faster, but riskier) skip.
+- Surefire and JaCoCo interact through the `argLine` property — JaCoCo's `prepare-agent` goal injects a `-javaagent` flag into the same `argLine` surefire uses to launch the test JVM; if your `pom.xml` manually overrides `<argLine>` elsewhere without including `@{argLine}` (the JaCoCo-populated placeholder), you silently lose coverage instrumentation with no error — a subtle, easy-to-miss interaction.
+- Test JVM forking (`forkCount`) affects both speed and isolation — a shared/reused fork across many test classes can leak static state (relevant to the `MockedStatic` cleanup discipline from Phase 9.3) between test classes if not closed properly, though this is much rarer than same-class leakage.
+
+#### 7.4 Common misconfig symptoms
+| Symptom | Likely cause |
+|---|---|
+| JaCoCo report shows 0% coverage despite tests passing | Custom `<argLine>` override doesn't include `@{argLine}`, dropping the JaCoCo agent |
+| Tests silently don't run at all | Test class naming doesn't match `<includes>` pattern (e.g., named `*Tests.java` instead of `*Test.java`) |
+| OutOfMemoryError during `mvn test` on a large suite | Default heap too small for the test JVM; needs `<argLine>-Xmx...` increase |
+
+---
+
+### 8. maven-failsafe-plugin
+
+#### 8.1 What it does
+Runs *integration* tests (conventionally `**/*IT.java`), bound to the `integration-test`/`verify` phases — distinct from surefire's unit tests, which run earlier in the `test` phase. The separation exists because integration tests often need a running environment (a deployed AEM instance, external service) that shouldn't block a fast local `mvn test`.
+
+#### 8.2 Technicalities
+- Failsafe deliberately runs `integration-test` (execute) and `verify` (check results) as **two separate goal bindings**, so that post-integration-test cleanup (tearing down a test environment) can run even if a test failed — this is why failsafe exists as a distinct plugin from surefire rather than surefire simply also handling `*IT.java` files.
+- Most AEM projects don't have integration tests configured by default from the archetype — if your project has none, this plugin may not even be present in your `pom.xml`, which is normal, not a gap.
+
+---
+
+### 9. sling-maven-plugin
+
+#### 9.1 What it does
+Installs/deploys the built package or bundle directly to a running AEM instance — this is the plugin actually invoked by the common `-PautoInstallPackage` / `-PautoInstallBundle` Maven profiles used during local development.
+
+#### 9.2 Key configuration (typically inside a profile, not the default build)
+
+```xml
+<profile>
+  <id>autoInstallPackage</id>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.sling</groupId>
+        <artifactId>sling-maven-plugin</artifactId>
+        <configuration>
+          <slingUrl>http://localhost:4502/system/console</slingUrl>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>install</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</profile>
+```
+
+#### 9.3 Technicalities
+- The `-P` flag activates a Maven **profile** — `-PautoInstallPackage` and `-PautoInstallBundle` are conventionally defined profiles in AEM archetypes that add this plugin's execution to the build only when explicitly requested, which is why a plain `mvn clean install` (no profile flag) doesn't attempt to touch a running AEM instance.
+- `autoInstallBundle` deploys just the OSGi bundle (fast, for quick backend iteration); `autoInstallPackage` deploys the full content package (slower, includes content/config changes) — knowing which one to reach for materially affects local dev iteration speed.
+- This plugin is irrelevant to Cloud Manager pipeline deployments — Cloud Manager uses its own deployment orchestration reading the built artifacts, not `sling-maven-plugin` against a live URL; this plugin is strictly a local/on-prem development convenience.
+
+#### 9.4 Common misconfig symptoms
+| Symptom | Likely cause |
+|---|---|
+| `mvn clean install -PautoInstallPackage` succeeds but nothing changes on the instance | Wrong `slingUrl` port/host, or instance not actually running |
+| Deploy "succeeds" but bundle doesn't update | Used `autoInstallPackage` when only bundle code changed and `autoInstallBundle` would have been faster/more direct — usually not a failure, just an efficiency note |
+
+---
+
+### 10. jacoco-maven-plugin
+
+Covered in full detail in Phase 10 of the JUnit testing guide — summarized here for completeness:
+
+- `prepare-agent` goal must run before `surefire`/`failsafe` execution to attach the coverage-collecting Java agent.
+- `report` goal generates the human-readable HTML (`target/site/jacoco/index.html`) and machine-readable XML (`jacoco.xml`, consumed by SonarQube/Cloud Manager quality gates).
+- `check` goal is the actual build-failing enforcement mechanism — `report` alone does not block a bad build.
+- Threshold values are fractional (0.0–1.0), not percentages — `<minimum>80</minimum>` is a common, silently-impossible-to-meet misconfiguration.
+
+---
+
+### 11. Full Lifecycle Walkthrough — What `mvn clean install -PautoInstallPackage` Actually Does
+
+Useful as a single mental model tying every plugin above together, in the order things actually happen:
+
+1. **`clean`** — deletes `target/`, removing stale compiled classes, old JaCoCo `.exec` data, and old packaged artifacts.
+2. **`validate`/`initialize`** — Maven reads the POM, resolves the effective configuration (including any active profiles like `autoInstallPackage`).
+3. **`process-resources`** — `maven-resources-plugin` copies non-Java resources into `target/classes`.
+4. **`compile`** — `maven-compiler-plugin` compiles `.java` sources.
+5. **`process-test-resources` / `test-compile`** — same as above, for test sources.
+6. **`test`** — `maven-surefire-plugin` runs unit tests; if `jacoco-maven-plugin`'s `prepare-agent` ran earlier, coverage data is collected here.
+7. **`package`** — `maven-jar-plugin` builds a plain JAR, then `maven-bundle-plugin`/`bnd-maven-plugin` post-processes it into an OSGi bundle (for `core`); `filevault-package-maven-plugin` builds the content package `.zip` (for `ui.apps`/`ui.content`/`all`).
+8. **`integration-test` / `verify`** — `maven-failsafe-plugin` runs `*IT.java` tests if present; `jacoco-maven-plugin`'s `check` goal enforces coverage thresholds here, potentially failing the build.
+9. **`install`** — the built artifact (bundle JAR or content package ZIP) is copied into your local `~/.m2` repository.
+10. **(profile-only) `sling:install`** — because `-PautoInstallPackage` was passed, `sling-maven-plugin`'s bound execution now also pushes the freshly built artifact to the running AEM instance at the configured `slingUrl`.
+
+---
+
+### 12. Quick Reference Table
+
+| Plugin | Phase it binds to | What breaks without it | Local-dev only? |
+|---|---|---|---|
+| maven-compiler-plugin | compile | Nothing compiles | No |
+| maven-bundle-plugin / bnd-maven-plugin | package | No OSGi manifest — bundle won't be recognized as a bundle | No |
+| filevault-package-maven-plugin | package | No deployable content package | No |
+| maven-resources-plugin | process-resources | Non-Java files missing from the build | No |
+| maven-jar-plugin | package | No JAR to turn into a bundle | No |
+| maven-surefire-plugin | test | Unit tests never run | No |
+| maven-failsafe-plugin | integration-test/verify | Integration tests never run | No |
+| sling-maven-plugin | install (profile-bound) | No direct deploy to a running local instance | Yes |
+| jacoco-maven-plugin | test/verify | No coverage report, no coverage gate enforcement | No |
+
+---
+
+**Interview framing tip:** if asked "walk me through what happens when you build an AEM project," Section 11 above is essentially the answer — being able to name the phases in order and which plugin does what at each step is what separates "I run the Maven command" from genuinely understanding the build.
