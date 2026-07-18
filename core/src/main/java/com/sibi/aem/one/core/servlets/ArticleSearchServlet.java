@@ -22,10 +22,10 @@ import java.util.List;
 /**
  * HTTP endpoint that exposes ArticleSearchService.
  *
- * GET /bin/mysite/articles/search.json
+ * GET /bin/sibi-aem-one/articles/search.json
  *   ?category=technology,sports
  *   &author=alice,bob
- *   &tag=mysite:topic/aem,mysite:topic/cloud
+ *   &tag=sibi-aem-one:topic/aem,sibi-aem-one:topic/cloud
  *   &publishedAfter=2024-01-01T00:00:00.000%2B05:30
  *   &publishedBefore=2024-12-31T23:59:59.000%2B05:30
  *   &q=query+builder+api
@@ -38,7 +38,7 @@ import java.util.List;
 @Component(
         service = Servlet.class,
         property = {
-                "sling.servlet.paths=/bin/mysite/articles/search",
+                "sling.servlet.paths=/bin/sibi-aem-one/articles/search",
                 "sling.servlet.extensions=json",
                 "sling.servlet.methods=" + HttpConstants.METHOD_GET
         }
@@ -75,7 +75,7 @@ public class ArticleSearchServlet extends SlingAllMethodsServlet {
 
         // --- Build request DTO ---
         ArticleSearchRequest searchRequest = ArticleSearchRequest.builder()
-                .rootPath("/content/mysite/en")
+                .rootPath("/content/sibi-aem-one/en")
                 .categories(categories)
                 .authors(authors)
                 .tags(tags)

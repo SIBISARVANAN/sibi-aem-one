@@ -47,6 +47,17 @@ public class AuthorImpl implements Author {}
 
 ### Adaptables vs Adapters
 
+#### Adaptables
+What types of objects this model can adapt from.
+Specifies the source object types that can be adapted into this sling model.
+SlingHttpServletRequest.class -> when adapting from sling request.
+Resource.class -> when adapting from JCR resource.
+
+#### Adapters
+What types of objects this model can adapt to.
+Specifies the target that this model can adapt to.
+Usually the model itself is the adapter, but you can expose it as an interface.
+
 | Term | Meaning | Example |
 |---|---|---|
 | **Adaptables** | Where the model comes from — the **input** types it can be created from | `Resource.class`, `SlingHttpServletRequest.class` |
@@ -174,17 +185,27 @@ protected void unbind(GoogleRecaptchaConfigService service) {
 }
 ```
 
-The container handles:
+**The container handles:**
 - Watching the service registry for new/removed instances
 - Deciding when `bind()` / `unbind()` are called
 - Enforcing ordering, ranking, and thread safety
 - Dynamic hot-swap when a config changes at runtime
 
+**Here you tell OSGi:**
+@Reference(cardinality = MULTIPLE, policy = DYNAMIC)
+Now the container (OSGi runtime):
+watches the service registry
+decides when a service appears/disappears
+calls your bind() / unbind() methods
+enforces ordering, ranking, thread safety
+You are just reacting to container events.
+That’s why it’s container-managed.
+
 ---
 
 ### Application-Managed Lifecycle (v2 — Self-Registration Pattern)
 
-Each factory instance registers itself into a static map on activation and removes itself on deactivation. **Your application code owns the lifecycle.**
+Each factory instance registers itself into a static map on activation and removes itself on deactivation. **Your application code owns the lifecycle.** Static registry is application-managed because you own the lifecycle.
 
 ```java
 private static final Map<String, GoogleRecaptchaConfigService> REGISTRY =
@@ -204,11 +225,23 @@ public void deactivate() {
 }
 ```
 
-Your code owns:
+**Your code owns:**
 - When to register and deregister
 - Where instances are stored
 - Thread safety of the map (use `ConcurrentHashMap`)
 - Handling config updates (`@Modified` must re-register)
+
+**Your application code decides:**
+when to register
+where to store
+how to update
+how to remove
+@Activate  → REGISTRY.put(this)
+@Deactivate → REGISTRY.remove(this)
+**The container only:**
+creates the object
+calls @Activate / @Deactivate
+Everything else is your responsibility. That’s why it’s application-managed.
 
 ---
 
@@ -244,7 +277,7 @@ If the IDs differ at deserialization time, Java throws `java.io.InvalidClassExce
 
 ### Servlet Registration: Two Approaches
 
-#### ResourceType Registration ✅ (Best Practice)
+#### ResourceType Registration (Best Practice)
 
 ```java
 @Component(service = Servlet.class)
@@ -262,7 +295,7 @@ public class ResourceTypeRegistrationServlet extends SlingAllMethodsServlet { }
 - **ACLs of that JCR node apply to the servlet** — giving you repository-level access control for free.
 - This is the currently recommended approach.
 
-#### Path Registration ⚠️ (Legacy)
+#### Path Registration (Legacy)
 
 ```java
 @Component(service = Servlet.class)
@@ -546,6 +579,17 @@ This is the only way to distinguish local from external events.
 | Background processing — only one node should do the work | Check `!isExternal()` and skip if external |
 | Primary + secondary store updates on different nodes | Check `isExternal()` and branch logic accordingly |
 
+**Process all changes regardless of origin** — cache invalidation, search index
+updates, anything where every node must react to every change no matter where
+it came from.
+
+**Skip external changes** — background processing jobs, data sync tasks where
+only one node should do the work. The node that made the change processes it;
+other nodes ignore it to avoid duplicate job execution.
+
+**Handle local and external differently** — primary data store updates on the
+originating node, secondary data store sync on all other nodes.
+
 ---
 
 ### The Duplicate Job Problem
@@ -602,6 +646,33 @@ public void onChange(List<ResourceChange> changes) {
 | `OSGi EventHandler` + `SlingConstants` resource topics | Deprecated for resource changes | No cluster awareness, no glob paths |
 | `ResourceChangeListener` alone | Current | Correct, but misses external cluster events |
 | `ResourceChangeListener` + `ExternalResourceChangeListener` | Current — preferred | Receives changes from all cluster nodes |
+
+### OSGi Config Properties That Matter
+
+`ResourceChangeListener.PATHS` — one or more JCR paths or glob patterns to
+watch. Use `glob:` prefix for pattern matching. Use `.` to watch everything
+(use with caution in production).
+
+`ResourceChangeListener.CHANGES` — which change types to subscribe to. Values
+are ADDED, CHANGED, REMOVED, PROVIDER_ADDED, PROVIDER_REMOVED. Only subscribe
+to what you actually need.
+
+---
+
+### Key Differences From Deprecated Approaches
+
+`JCR EventListener` — raw JCR API, no cluster awareness, no glob paths,
+legacy, avoid.
+
+`OSGi EventHandler` with `SlingConstants` resource topics — deprecated for
+resource changes, no cluster awareness, no glob paths, avoid for content events.
+
+`ResourceChangeListener` alone — correct API, but misses external cluster
+events. Use when your logic only needs to react to local changes.
+
+`ResourceChangeListener` + `ExternalResourceChangeListener` — correct and
+complete. Use whenever your logic must react to changes from any node in
+the cluster.
 
 ---
 
@@ -691,6 +762,18 @@ If two filters have the same ranking, execution order is not guaranteed. Always 
 
 ### The Filter Chain
 
+Every filter receives a FilterChain object. Calling chain.doFilter() passes
+the request to the next filter in the chain, or to the servlet if no more
+filters remain.
+
+Code written before chain.doFilter() is pre-processing. It runs before the
+request reaches the servlet or component. This is where you do auth checks,
+validation, and request modification.
+
+Code written after chain.doFilter() is post-processing. It runs after the
+response has been generated. This is where you add response headers, log
+response status codes, or modify the response body.
+
 ```java
 @Override
 public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -715,6 +798,17 @@ public void doFilter(ServletRequest request, ServletResponse response, FilterCha
 ### Response Wrapping — Modifying the Response Body
 
 You cannot read or modify the response body after it has been written. The solution is to wrap the response *before* calling `chain.doFilter()`:
+If you need to read or modify the response body, you cannot do it directly
+because by the time your post-processing code runs the response has already
+been written. You must wrap the response before calling chain.doFilter().
+
+A response wrapper intercepts the output that the servlet writes and buffers
+it in memory. After chain.doFilter() returns you read the buffer, modify it,
+and write the modified content to the real response.
+
+Response wrapping is expensive because the full response body is held in
+memory. Only use it when you genuinely need to modify the output. Never use
+it on high-traffic paths without measuring the memory impact first.
 
 ```java
 // 1. Wrap the response to intercept the servlet's output
@@ -872,6 +966,11 @@ Under the hood, workflow steps are executed as **Sling Jobs**:
 | Workflow model definition | `/conf` or `/etc/workflow/models` |
 | Runtime instance data (history, state, actors) | `/var/workflow/instances` |
 
+### Granite Workflow vs. Sling Jobs
+While workflows appear as a continuous process in the UI, they are technically executed as **Sling Jobs**.
+* **Job Offloading:** In clustered 6.5 environments, the Sling Job distribution ensures that workflow steps can be offloaded to different instances.
+* **Consistency:** Every step completion triggers a JCR write to persist the state, ensuring that if an instance crashes, the workflow can resume from the last persisted "checkpoint."
+* 
 ---
 
 ### State Management — The Three Metadata Maps
@@ -886,6 +985,20 @@ Understanding these three maps is fundamental to workflow development.
 
 ---
 
+### **WorkItem: The Runtime Container**
+The `WorkItem` is the object that represents the current instance of a workflow as it passes through a specific step. It acts as the "handle" for the engine's execution state.
+
+* **Identity:** It contains the ID of the current step and the overall workflow instance.
+* **Data Access:** It provides the primary gateway to the **WorkflowData**, which contains the payload (the asset or page path).
+* **Persistence:** It is used to access the long-term memory of the workflow that persists across different steps.
+
+### **MetaDataMap (args): The Design-Time Configuration**
+The `MetaDataMap` passed as the third parameter in the `execute` method represents the **Process Arguments**. These are values configured by the developer or author within the Workflow Model editor.
+
+* **Function:** It allows a single Java class to be reused across different workflow models by passing unique parameters.
+* **Scope:** It is local to the current step configuration.
+* **Source:** Values are sourced from the "Process Arguments" text field or the metadata dialog in the Workflow Step UI.
+* 
 ### WorkItem vs MetaDataMap (args) — Detailed Comparison
 
 | Feature | `WorkItem` | `MetaDataMap args` |
@@ -920,6 +1033,19 @@ public void execute(WorkItem item, WorkflowSession session, MetaDataMap args)
 ---
 
 ### Execution Patterns
+
+#### The Three Maps of Workflow Development
+As a senior developer, you must distinguish between the three different metadata maps available during a process step execution:
+1.  **Step Metadata (`args`):**
+  * *Source:* The "Arguments" in the Workflow Model Step dialog.
+  * *Usage:* Reading static configurations for the code.
+2.  **WorkItem Metadata (`item.getMetaDataMap()`):**
+  * *Source:* Specific to the current execution of this step.
+  * *Usage:* Very short-lived data used within the step's logic.
+3.  **WorkflowData Metadata (`item.getWorkflowData().getMetaDataMap()`):**
+  * *Source:* The shared memory for the entire workflow instance.
+  * *Usage:* **Crucial.** Use this to pass data from Step A to Step B (e.g., a "route" flag or an external system ID).
+
 
 #### Transient Workflows
 

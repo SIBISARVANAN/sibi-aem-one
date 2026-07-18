@@ -122,6 +122,6 @@ public class ApprovalNotificationProcess implements WorkflowProcess {
         // (/home/users/.../rep:profile/email) rather than assuming userId IS the email.
         // Placeholder: assume corporate email convention. Replace with real
         // UserManager / profile lookup in production.
-        return userId + "@mysite.com";
+        return userId + "@sibi-aem-one.com";
     }
 }

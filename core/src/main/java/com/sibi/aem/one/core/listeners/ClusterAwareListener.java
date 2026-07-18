@@ -17,7 +17,7 @@ import java.util.Map;
         service = {ResourceChangeListener.class},
         immediate = true,
         property = {
-                ResourceChangeListener.PATHS + "=/content/mysite",
+                ResourceChangeListener.PATHS + "=/content/sibi-aem-one",
                 ResourceChangeListener.CHANGES + "=CHANGED"
         }
 )
