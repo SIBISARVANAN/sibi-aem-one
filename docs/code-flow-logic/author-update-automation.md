@@ -128,9 +128,6 @@ the hood, and because some older/simpler codebases still use it.
 
 ## 6. Gotchas / edge cases handled
 
-- **B's lock has a hardcoded 300-second timeout** — if `run()` legitimately
-  takes longer than 5 minutes, the lock expires while the node still thinks
-  it's holding it; not handled defensively here.
 - **B's lock node creation isn't itself safe against a race** — two nodes
   could both hit `!session.nodeExists(LOCK_PATH)` simultaneously and both
   try to create it; in practice the JCR save would conflict and one would
@@ -142,9 +139,6 @@ the hood, and because some older/simpler codebases still use it.
 - **D checks for existing scheduled jobs before adding a new one** — avoids
   the classic OSGi re-activation bug where a component restart (e.g. config
   change) would otherwise create duplicate schedules.
-- **D returns `JobResult.FAILED` from a caught exception**, and its comment
-  explicitly notes Sling will retry automatically — worth knowing the
-  default retry count/backoff behavior if asked to go deeper.
 - **A has no failure handling at all** — `run()` in this codebase is a stub;
   in a real implementation, an uncaught exception inside `run()` would just
   be logged by the scheduler's own error handling, not retried.

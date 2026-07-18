@@ -62,6 +62,7 @@ public class GoogleRecaptchaConfigServiceImpl implements GoogleRecaptchaConfigSe
                 cardinality = ReferenceCardinality.MULTIPLE,
                 policy = ReferencePolicy.DYNAMIC)
         protected void bind(GoogleRecaptchaConfigService googleRecaptchaConfigService) {
+            REGISTRY.values().removeIf(v -> v == googleRecaptchaConfigService);
             REGISTRY.put(googleRecaptchaConfigService.getSiteName(), googleRecaptchaConfigService);
         }
 

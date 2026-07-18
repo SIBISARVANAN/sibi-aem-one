@@ -6,6 +6,8 @@ import com.day.cq.workflow.WorkflowSession;
 import com.day.cq.workflow.exec.WorkItem;
 import com.day.cq.workflow.exec.WorkflowProcess;
 import com.day.cq.workflow.metadata.MetaDataMap;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -65,7 +67,7 @@ public class AdvancedProductSyncProcess implements WorkflowProcess {
                     try (CloseableHttpResponse response = httpClient.execute(request)) {
                         int statusCode = response.getStatusLine().getStatusCode();
                         if (statusCode == 200) {
-                            processSuccess(response, payloadPath, workItem, workflowSession);
+                            processSuccess(response, payloadPath, workItem, workflowSession, resolver);
                         } else {
                             handleRetryLogic(workItem, retryCount);
                         }
@@ -109,9 +111,18 @@ public class AdvancedProductSyncProcess implements WorkflowProcess {
         return resourceResolverFactory.getServiceResourceResolver(authInfo);
     }
 
-    private void processSuccess(CloseableHttpResponse response, String payloadPath, WorkItem workItem, WorkflowSession workflowSession) throws IOException {
+    private void processSuccess(CloseableHttpResponse response, String payloadPath, WorkItem workItem, WorkflowSession workflowSession,  ResourceResolver resolver) throws IOException {
         HttpEntity entity = response.getEntity();
         String json = EntityUtils.toString(entity);
+        JsonObject productData = JsonParser.parseString(json).getAsJsonObject();
+
+        Resource payloadResource = resolver.getResource(payloadPath + "/" + JcrConstants.JCR_CONTENT);
+        if (payloadResource != null) {
+            ModifiableValueMap mvm = payloadResource.adaptTo(ModifiableValueMap.class);
+            if (mvm != null && productData.has("price")) {
+                mvm.put("syncedPrice", productData.get("price").getAsString());
+            }
+        }
         workItem.getWorkflowData().getMetaDataMap().put("syncStatus", "SUCCESS");
     }
 

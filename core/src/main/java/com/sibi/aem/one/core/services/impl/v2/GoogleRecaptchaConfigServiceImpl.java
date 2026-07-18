@@ -25,6 +25,8 @@ public class GoogleRecaptchaConfigServiceImpl implements GoogleRecaptchaConfigSe
 
     private String privateKey;
 
+    private String previousSiteName;
+
     public static GoogleRecaptchaConfigService getGoogleRecaptchaConfigService(String siteName) {
         return REGISTRY.get(siteName);
     }
@@ -36,6 +38,10 @@ public class GoogleRecaptchaConfigServiceImpl implements GoogleRecaptchaConfigSe
     @Activate
     @Modified
     public void activate(GoogleRecaptchaConfig googleRecaptchaConfig) {
+        if (previousSiteName != null && !previousSiteName.equals(googleRecaptchaConfig.siteName())) {
+            REGISTRY.remove(previousSiteName);
+        }
+        this.previousSiteName = this.siteName;
         siteName = googleRecaptchaConfig.siteName();
         publicKey = googleRecaptchaConfig.publicKey();
         privateKey = googleRecaptchaConfig.privateKey();

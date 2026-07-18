@@ -1,5 +1,6 @@
 package com.sibi.aem.one.core.jobs;
 
+import com.adobe.granite.workflow.model.ValidationException;
 import org.apache.sling.event.jobs.Job;
 import org.apache.sling.event.jobs.consumer.JobConsumer;
 import org.osgi.service.component.annotations.Component;
@@ -25,9 +26,14 @@ public class AuthorUpdateScheduledJobConsumer implements JobConsumer {
 
             LOG.info("Finished processing job {}", job.getId());
             return JobResult.OK;
+        } catch (IllegalArgumentException e) {
+            // Permanent failure — retrying won't help, stop immediately
+            LOG.error("Job failed permanently, not retrying: {}", e.getMessage(), e);
+            return JobResult.CANCEL;
         } catch (Exception e) {
-            LOG.error("Job failed - {}", e);
-            return JobResult.FAILED; // Sling will retry automatically
+            // Transient failure (network, timeout, etc.) — safe to retry
+            LOG.error("Job failed, will retry: {}", e.getMessage(), e);
+            return JobResult.FAILED;
         }
     }
 

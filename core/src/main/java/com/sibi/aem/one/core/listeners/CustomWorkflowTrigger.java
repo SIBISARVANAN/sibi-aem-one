@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.List;
 
-@Component(service = ResourceChangeListener.class, property = {
+@Component(service = ResourceChangeListener.class, immediate = true, property = {
         ResourceChangeListener.PATHS + "=/content/dam/sibi-aem-one",
         ResourceChangeListener.CHANGES + "=ADDED",
         ResourceChangeListener.CHANGES + "=CHANGED"

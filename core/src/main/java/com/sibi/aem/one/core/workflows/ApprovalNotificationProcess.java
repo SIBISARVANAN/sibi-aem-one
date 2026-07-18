@@ -7,12 +7,22 @@ import com.day.cq.workflow.WorkflowSession;
 import com.day.cq.workflow.exec.WorkItem;
 import com.day.cq.workflow.exec.WorkflowProcess;
 import com.day.cq.workflow.metadata.MetaDataMap;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.mail.EmailException;
 import org.apache.commons.mail.HtmlEmail;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.sling.api.resource.LoginException;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.Value;
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * Workflow Process Step that sends an EMAIL NOTIFICATION to the workflow
@@ -48,12 +58,17 @@ public class ApprovalNotificationProcess implements WorkflowProcess {
 
     private static final Logger LOG = LoggerFactory.getLogger(ApprovalNotificationProcess.class);
 
+    private static final String SERVICE_USER = "approval-notification-service";
+
     /**
      * AEM's built-in mail service, backed by the SMTP configuration set in
      * {@code /system/console/configMgr} → "Day CQ Mail Service".
      */
     @Reference
     private MessageGatewayService messageGatewayService;
+
+    @Reference
+    private ResourceResolverFactory resourceResolverFactory;
 
     @Override
     public void execute(WorkItem workItem, WorkflowSession workflowSession, MetaDataMap args)
@@ -68,6 +83,11 @@ public class ApprovalNotificationProcess implements WorkflowProcess {
 
         // Resolve who initiated the workflow — this is who gets notified
         String initiator = workItem.getWorkflow().getInitiator();
+        String recipientEmail = resolveUserEmail(initiator);
+        if (StringUtils.isBlank(recipientEmail)) {
+            LOG.error("Could not resolve email for initiator {}, skipping notification", initiator);
+            return;
+        }
 
         String subject;
         String body;
@@ -85,7 +105,7 @@ public class ApprovalNotificationProcess implements WorkflowProcess {
                     + "Please contact the AEM support team or retry publishing manually.";
         }
 
-        sendNotification(initiator, subject, body);
+        sendNotification(recipientEmail, subject, body);
     }
 
     /**
@@ -118,10 +138,24 @@ public class ApprovalNotificationProcess implements WorkflowProcess {
         if (userId == null) {
             return null;
         }
-        // In a real project, resolve the user's email from their JCR profile
-        // (/home/users/.../rep:profile/email) rather than assuming userId IS the email.
-        // Placeholder: assume corporate email convention. Replace with real
-        // UserManager / profile lookup in production.
-        return userId + "@sibi-aem-one.com";
+        try (ResourceResolver resolver = getServiceResolver()) { // add a service-user resolver, subservice e.g. "user-lookup-service"
+            UserManager userManager = resolver.adaptTo(UserManager.class);
+            Authorizable authorizable = userManager.getAuthorizable(userId);
+            if (authorizable != null) {
+                Value[] emailValues = authorizable.getProperty("profile/email");
+                if (emailValues != null && emailValues.length > 0) {
+                    return emailValues[0].getString();
+                }
+            }
+        } catch (Exception e) {
+            LOG.error("Failed to resolve email for user {}: {}", userId, e.getMessage(), e);
+        }
+        return null;
+    }
+
+    private ResourceResolver getServiceResolver() throws LoginException {
+        Map<String, Object> authInfo = Collections.singletonMap(
+                ResourceResolverFactory.SUBSERVICE, SERVICE_USER);
+        return resourceResolverFactory.getServiceResourceResolver(authInfo);
     }
 }

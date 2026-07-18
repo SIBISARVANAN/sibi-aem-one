@@ -17,8 +17,13 @@ public class AuthorUpdateJobConsumer implements JobConsumer {
             LOG.info("Received Job Payload: " + path);
             // do whatever you want here
             return JobResult.OK;
-        } catch (Exception e){
-            LOG.error("Job failed - {}", e);
+        } catch (IllegalArgumentException e) {
+            // Permanent failure — retrying won't help, stop immediately
+            LOG.error("Job failed permanently, not retrying: {}", e.getMessage(), e);
+            return JobResult.CANCEL;
+        } catch (Exception e) {
+            // Transient failure (network, timeout, etc.) — safe to retry
+            LOG.error("Job failed, will retry: {}", e.getMessage(), e);
             return JobResult.FAILED;
         }
     }

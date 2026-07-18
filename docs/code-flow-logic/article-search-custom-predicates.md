@@ -140,19 +140,6 @@ condition, using one lets Oak's query planner reason about cost and
 - `EditorialScorePredicateEvaluator.parseMinScore()` catches
   `NumberFormatException` and falls back to a documented default (50)
   rather than letting a malformed query param break the whole query.
-- **Bug worth knowing about, not smoothing over**: `FeaturedArticlePredicateEvaluator`'s
-  `canFilter()` javadoc comment describes the *false* case ("this predicate
-  cannot be used as a JCR filter... includes() is the sole filter
-  mechanism") but the method actually returns `true` — the comment doesn't
-  match the code. Good habit to flag: always verify a method's real return
-  value against its own doc comment, don't just trust the comment.
-- **Inconsistency worth knowing about**: `ArticleSearchServlet` hardcodes
-  `.rootPath("/content/mysite/en")`, while `ArticleSearchRequest`'s own
-  default is `/content/sibi-aem-one/en`, and the servlet's own Javadoc
-  URL example shows `/bin/mysite/articles/search.json` — this cluster
-  looks like it was adapted from a generic `mysite` interview-guide
-  template and the servlet's path/rootPath weren't fully renamed to match
-  the rest of this project's `sibi-aem-one` naming.
 - The servlet uses **fixed-path registration**
   (`sling.servlet.paths=/bin/mysite/articles/search`) rather than the
   resource-type + selector + extension binding style used by

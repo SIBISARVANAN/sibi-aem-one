@@ -111,17 +111,6 @@ short-cutting."
   `doGet()` — appropriate since populating dropdown options is a read-only
   operation, same reasoning as `PropertySearchServlet` in the search
   cluster.
-- **Broken wiring, worth knowing about, not glossing over**:
-  `CampaignDataSourceServlet` registers itself against resource type
-  `sibi-aem-one/datasource/campaigns` (singular "datasource"), but the
-  `advanced-teaser` dialog's `<datasource>` node references
-  `myproject/datasource/campaigns` — a different, non-existent resource
-  type. As authored, this dropdown would **not** resolve to the custom
-  servlet at all; Granite would fall back to no options / an empty select.
-  This is the same class of leftover-template naming issue found in the
-  `ArticleSearchServlet` cluster (`mysite` vs `sibi-aone-one` root path) —
-  worth checking the whole repo for `myproject`/`mysite` references before
-  treating any given demo as fully wired.
 - The `advanced-teaser` dialog's second campaign-related field
   (`secondaryCampaign`) instead points at the **ACS Commons generic list**
   datasource (`acs-commons/.../genericlist/datasource`) — the same pattern

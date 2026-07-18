@@ -100,7 +100,7 @@
                                     emptyText="Select a campaign...">
                                 <datasource
                                         jcr:primaryType="nt:unstructured"
-                                        sling:resourceType="myproject/datasource/campaigns"/>
+                                        sling:resourceType="sibi-aem-one/datasource/campaigns"/>
                             </campaignCategory>
 
                             <secondaryCampaign

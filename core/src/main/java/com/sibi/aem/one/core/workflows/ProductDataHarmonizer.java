@@ -6,6 +6,7 @@ import com.day.cq.workflow.WorkflowSession;
 import com.day.cq.workflow.exec.WorkItem;
 import com.day.cq.workflow.exec.WorkflowProcess;
 import com.day.cq.workflow.metadata.MetaDataMap;
+import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.osgi.service.component.annotations.Component;
@@ -65,7 +66,11 @@ public class ProductDataHarmonizer implements WorkflowProcess {
         return resourceResolverFactory.getServiceResourceResolver(props);
     }
 
-    private String getMetadata(ResourceResolver resolver, String payloadPath, String key) throws Exception{
-        return resolver.getResource(payloadPath + "/" + JcrConstants.JCR_CONTENT + "/metadata").getValueMap().get(key, String.class);
+    private String getMetadata(ResourceResolver resolver, String payloadPath, String key) throws WorkflowException {
+        Resource metadataResource = resolver.getResource(payloadPath + "/" + JcrConstants.JCR_CONTENT + "/metadata");
+        if (metadataResource == null) {
+            throw new WorkflowException("Metadata node missing for " + payloadPath);
+        }
+        return metadataResource.getValueMap().get(key, String.class);
     }
 }

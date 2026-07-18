@@ -6,6 +6,7 @@ import com.day.cq.workflow.WorkflowSession;
 import com.day.cq.workflow.exec.WorkItem;
 import com.day.cq.workflow.exec.WorkflowProcess;
 import com.day.cq.workflow.metadata.MetaDataMap;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
@@ -27,7 +28,7 @@ public class LegalApprovalProcess implements WorkflowProcess {
     @Reference
     private ResourceResolverFactory resourceResolverFactory;
 
-    private static final String SUBSERVICE_NAME = "workflowService";
+    private static final String SUBSERVICE_NAME = "legal-approval-service";
 
     @Override
     public void execute(WorkItem workItem, WorkflowSession workflowSession, MetaDataMap metaDataMap) throws WorkflowException {
@@ -36,13 +37,17 @@ public class LegalApprovalProcess implements WorkflowProcess {
         try(ResourceResolver resolver = resourceResolverFactory.getServiceResourceResolver(params)){
             Session session = resolver.adaptTo(Session.class);
             Resource assetResource = resolver.getResource(payloadPath + "/" + JcrConstants.JCR_CONTENT);
-            if(assetResource != null){
+            if(assetResource != null && session != null){
                 Node node = assetResource.adaptTo(Node.class);
                 if(node != null){
                     node.setProperty("legalApproved", true);
                     LOG.debug("Asset {} marked as legally approved", payloadPath);
                 }
-                String destinationPath = "/content/dam/certified-assets/" + assetResource.getParent().getName();
+                String destinationFolder = "/content/dam/certified-assets";
+                if (!session.itemExists(destinationFolder)) {
+                    JcrUtils.getOrCreateByPath(destinationFolder, JcrConstants.NT_FOLDER, session);
+                }
+                String destinationPath = destinationFolder + "/" + assetResource.getParent().getName();
                 session.move(payloadPath, destinationPath);
                 session.save();
                 LOG.debug("Asset moved from {} to {}", payloadPath, destinationPath);

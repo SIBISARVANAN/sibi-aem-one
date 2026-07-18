@@ -60,6 +60,14 @@ mvn clean test          # unit tests
 mvn clean verify -Plocal  # integration tests against a running AEM instance
 ```
 
+---
+
+## Documentation Notes
+
+The flow-logic docs under `docs/code-flow-logic/` were drafted with AI assistance, then reviewed and corrected by me.
+
+---
+
 ## Related
 
 - [sibi-aem-playbook](https://github.com/SIBISARVANAN/sibi-aem-playbook) — deep-dive conceptual notes on OSGi internals, Sling request handling, Oak/JCR, and AEM testing patterns, built alongside this project.
