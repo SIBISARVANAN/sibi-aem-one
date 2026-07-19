@@ -6,31 +6,241 @@
 
 ## Table of Contents
 
-1. [Sling Models](#1-sling-models)
-2. [OSGi Service Registry](#2-osgi-service-registry)
-3. [OSGi Configuration Registry](#3-osgi-configuration-registry)
-4. [Sling Servlets](#4-sling-servlets)
-5. [Sling Jobs](#5-sling-jobs)
-6. [Sling Event Handlers & Resource Listeners](#6-sling-event-handlers--resource-listeners)
-7. [Cluster-Aware Listeners](#7-cluster-aware-listeners)
-8. [Sling Filters](#8-sling-filters)
-9. [Request Flow — Browser → CDN → Dispatcher → AEM](#9-request-flow--browser--cdn--dispatcher--aem)
-10. [AEM Workflows](#10-aem-workflows)
-11. [JCR & Oak — Repository Fundamentals](#11-jcr--oak--repository-fundamentals)
-12. [QueryBuilder & Search](#12-querybuilder--search)
-13. [Dispatcher](#13-dispatcher)
-14. [AEM Security — Service Users & Permissions](#14-aem-security--service-users--permissions)
-15. [Sling Context-Aware Configuration (CAConfig)](#15-sling-context-aware-configuration-caconfig)
-16. [AEM as a Cloud Service — Key Differences from 6.5](#16-aem-as-a-cloud-service--key-differences-from-65)
-17. [Unit Testing in AEM](#17-unit-testing-in-aem)
-18. [AEM Component Development & HTL](#18-aem-component-development--htl)
-19. [TagManager & Taxonomy](#19-tagmanager--taxonomy)
-20. [Replication API](#20-replication-api)
-21. [Common Interview Questions — Senior Level](#21-common-interview-questions--senior-level)
+- [Sling Models](#sling-models)
+  - [Best Practice: Interface + Implementation](#best-practice-interface--implementation)
+  - [Adaptables vs Adapters](#adaptables-vs-adapters)
+  - [Injection Strategies](#injection-strategies)
+  - [@PostConstruct](#postconstruct)
+  - [All Sling Model Injector Annotations — Quick Reference](#all-sling-model-injector-annotations--quick-reference)
+  - [@ChildResource — Multifield Pattern](#childresource--multifield-pattern)
+  - [Sling Model Delegation Pattern](#sling-model-delegation-pattern)
+  - [JSON Export — Common Interview Questions](#json-export--common-interview-questions)
+  - [Common Interview Questions — Sling Models](#common-interview-questions--sling-models)
+- [OSGi Service Registry](#osgi-service-registry)
+  - [How Multiple Implementations of a Service Are Resolved](#how-multiple-implementations-of-a-service-are-resolved)
+  - [Option A — Service Ranking](#option-a--service-ranking)
+  - [Option B — Named Services with Targeted Injection](#option-b--named-services-with-targeted-injection)
+  - [OSGi Component Lifecycle — @Activate, @Modified, @Deactivate](#osgi-component-lifecycle--activate-modified-deactivate)
+  - [OSGi Reference Cardinality & Policy](#osgi-reference-cardinality--policy)
+  - [ConfigurationPolicy](#configurationpolicy)
+  - [Common Interview Questions — OSGi](#common-interview-questions--osgi)
+- [OSGi Configuration Registry](#osgi-configuration-registry)
+  - [Pattern Overview](#pattern-overview)
+  - [Container-Managed Lifecycle (v1 — Bind/Unbind Pattern)](#container-managed-lifecycle-v1--bindunbind-pattern)
+  - [Application-Managed Lifecycle (v2 — Self-Registration Pattern)](#application-managed-lifecycle-v2--self-registration-pattern)
+  - [TL;DR Comparison](#tldr-comparison)
+  - [OSGi Config File Naming — Run Mode Targeting](#osgi-config-file-naming--run-mode-targeting)
+  - [Common Interview Questions — OSGi Config](#common-interview-questions--osgi-config)
+- [Sling Servlets](#sling-servlets)
+  - [serialVersionUID](#serialversionuid)
+  - [Servlet Registration: Two Approaches](#servlet-registration-two-approaches)
+  - [SlingSafeMethodsServlet vs SlingAllMethodsServlet](#slingsafemethodsservlet-vs-slingallmethodsservlet)
+  - [Sling DataSource — Dynamic Dialog Dropdowns](#sling-datasource--dynamic-dialog-dropdowns)
+  - [Common Interview Questions — Sling Servlets](#common-interview-questions--sling-servlets)
+- [Sling Jobs](#sling-jobs)
+  - [Why Sling Jobs Instead of Plain Schedulers?](#why-sling-jobs-instead-of-plain-schedulers)
+  - [End-to-End Flow of a Scheduled Sling Job](#end-to-end-flow-of-a-scheduled-sling-job)
+  - [Complete Flow Diagram](#complete-flow-diagram)
+  - [Multi-Timezone Job Pattern](#multi-timezone-job-pattern)
+  - [Common Interview Questions — Sling Jobs](#common-interview-questions--sling-jobs)
+- [Sling Event Handlers & Resource Listeners](#sling-event-handlers--resource-listeners)
+  - [When to Use Which](#when-to-use-which)
+  - [Common Event Topics](#common-event-topics)
+  - [The Golden Rule — Keep the Handler Fast](#the-golden-rule--keep-the-handler-fast)
+  - [ResourceChangeListener — Path Registration with Glob Patterns](#resourcechangelistener--path-registration-with-glob-patterns)
+- [Cluster-Aware Listeners](#cluster-aware-listeners)
+  - [The Problem](#the-problem)
+  - [The Two Interfaces](#the-two-interfaces)
+  - [The Key Method: isExternal()](#the-key-method-isexternal)
+  - [When to Use Each Approach](#when-to-use-each-approach)
+  - [The Duplicate Job Problem](#the-duplicate-job-problem)
+  - [Author Cluster vs Publish Farm](#author-cluster-vs-publish-farm)
+  - [Gotchas](#gotchas)
+  - [Evolution of Listener APIs — What to Use](#evolution-of-listener-apis--what-to-use)
+- [Sling Filters](#sling-filters)
+  - [What Is a Sling Filter?](#what-is-a-sling-filter)
+  - [Old Way vs New Way](#old-way-vs-new-way)
+  - [The Five Filter Scopes](#the-five-filter-scopes)
+  - [Filter Narrowing Properties](#filter-narrowing-properties)
+  - [Service Ranking — Filter Execution Order](#service-ranking--filter-execution-order)
+  - [The Filter Chain](#the-filter-chain)
+  - [Response Wrapping — Modifying the Response Body](#response-wrapping--modifying-the-response-body)
+  - [Disabling a Filter at Runtime](#disabling-a-filter-at-runtime)
+  - [Common Mistakes](#common-mistakes)
+  - [Filters vs Event Handlers vs Schedulers](#filters-vs-event-handlers-vs-schedulers)
+- [Request Flow — Browser → CDN → Dispatcher → AEM](#request-flow--browser--cdn--dispatcher--aem)
+  - [Full Request Lifecycle](#full-request-lifecycle)
+  - [Practical Implications](#practical-implications)
+  - [Security Headers and Caching — A Critical Note](#security-headers-and-caching--a-critical-note)
+  - [Dispatcher Cache Invalidation and Filters](#dispatcher-cache-invalidation-and-filters)
+- [AEM Workflows](#aem-workflows)
+  - [Engine Architecture](#engine-architecture)
+  - [State Management — The Three Metadata Maps](#state-management--the-three-metadata-maps)
+  - [WorkItem vs MetaDataMap (args) — Detailed Comparison](#workitem-vs-metadatamap-args--detailed-comparison)
+  - [Execution Patterns](#execution-patterns)
+  - [Advanced Routing](#advanced-routing)
+  - [Automation & Launchers](#automation--launchers)
+  - [6.5 vs AEM as a Cloud Service — The Asset Microservices Shift](#65-vs-aem-as-a-cloud-service--the-asset-microservices-shift)
+  - [Performance: Throttling and Purging](#performance-throttling-and-purging)
+  - [Best Practices](#best-practices)
+- [JCR & Oak — Repository Fundamentals](#jcr--oak--repository-fundamentals)
+  - [JCR Node Types You Must Know](#jcr-node-types-you-must-know)
+  - [JCR Property Types](#jcr-property-types)
+  - [ValueMap — Reading Properties Safely](#valuemap--reading-properties-safely)
+  - [Oak Index Types — Critical for Performance](#oak-index-types--critical-for-performance)
+  - [Oak Traversal Warning](#oak-traversal-warning)
+  - [Common Interview Questions — JCR & Oak](#common-interview-questions--jcr--oak)
+- [QueryBuilder & Search](#querybuilder--search)
+  - [QueryBuilder vs JCR-SQL2 vs XPath](#querybuilder-vs-jcr-sql2-vs-xpath)
+  - [Essential QueryBuilder Predicates](#essential-querybuilder-predicates)
+  - [p.guessTotal — Why It's Critical](#pguesstotal--why-its-critical)
+  - [Explaining a Query — Debug Tool](#explaining-a-query--debug-tool)
+  - [Common Interview Questions — QueryBuilder](#common-interview-questions--querybuilder)
+  - [AEM Search & Indexing: Advanced Interview Preparation Guide](#aem-search--indexing-advanced-interview-preparation-guide)
+- [Dispatcher](#dispatcher)
+  - [What the Dispatcher Does](#what-the-dispatcher-does)
+  - [What Dispatcher Caches](#what-dispatcher-caches)
+  - [Dispatcher Cache Invalidation](#dispatcher-cache-invalidation)
+  - [Key Dispatcher Configuration](#key-dispatcher-configuration)
+  - [Security Headers at Dispatcher Level](#security-headers-at-dispatcher-level)
+  - [Common Interview Questions — Dispatcher](#common-interview-questions--dispatcher)
+- [AEM Security — Service Users & Permissions](#aem-security--service-users--permissions)
+  - [Why Service Users?](#why-service-users)
+  - [Creating a Service User — Three Steps](#creating-a-service-user--three-steps)
+  - [ACL Permissions Quick Reference](#acl-permissions-quick-reference)
+  - [Common Interview Questions — Security](#common-interview-questions--security)
+- [Sling Context-Aware Configuration (CAConfig)](#sling-context-aware-configuration-caconfig)
+  - [What Is CAConfig?](#what-is-caconfig)
+  - [Resolution Order](#resolution-order)
+  - [Defining a Configuration](#defining-a-configuration)
+  - [Reading CAConfig in a Sling Model](#reading-caconfig-in-a-sling-model)
+  - [Storing a CAConfig value in JCR](#storing-a-caconfig-value-in-jcr)
+  - [Common Interview Questions — CAConfig](#common-interview-questions--caconfig)
+- [AEM as a Cloud Service — Key Differences from 6.5](#aem-as-a-cloud-service--key-differences-from-65)
+  - [Architecture Changes](#architecture-changes)
+  - [Mutable vs Immutable Content](#mutable-vs-immutable-content)
+  - [Things That Are Banned in AEMaaCS](#things-that-are-banned-in-aemaacs)
+  - [Cloud Manager Pipeline](#cloud-manager-pipeline)
+  - [AEMaaCS — Key APIs and Patterns](#aemaacs--key-apis-and-patterns)
+  - [Common Interview Questions — AEMaaCS](#common-interview-questions--aemaacs)
+- [Unit Testing in AEM](#unit-testing-in-aem)
+  - [Testing Stack](#testing-stack)
+  - [Testing a Sling Model](#testing-a-sling-model)
+  - [Test JSON Fixture (`/content/test-author.json`)](#test-json-fixture-contenttest-authorjson)
+  - [Testing an OSGi Service with Mockito](#testing-an-osgi-service-with-mockito)
+  - [Testing a Scheduler](#testing-a-scheduler)
+  - [Common Interview Questions — Testing](#common-interview-questions--testing)
+- [AEM Component Development & HTL](#aem-component-development--htl)
+  - [HTL (Sightly) Essentials](#htl-sightly-essentials)
+  - [HTL Context Options (XSS)](#htl-context-options-xss)
+  - [HTL Rules to Remember](#htl-rules-to-remember)
+  - [Component Dialog — Key Touch UI Resource Types](#component-dialog--key-touch-ui-resource-types)
+  - [Editable Templates vs Static Templates](#editable-templates-vs-static-templates)
+  - [Common Interview Questions — Components & HTL](#common-interview-questions--components--htl)
+- [TagManager & Taxonomy](#tagmanager--taxonomy)
+  - [Core APIs](#core-apis)
+  - [Tag ID Structure](#tag-id-structure)
+  - [Common Interview Questions — Tags](#common-interview-questions--tags)
+- [Replication API](#replication-api)
+  - [Programmatic Page Activation](#programmatic-page-activation)
+  - [Replication Action Types](#replication-action-types)
+  - [ReplicationOptions — Batch Replication](#replicationoptions--batch-replication)
+  - [Common Interview Questions — Replication](#common-interview-questions--replication)
+- [Common Interview Questions — Senior Level](#common-interview-questions--senior-level)
+  - [Architecture & Design](#architecture--design)
+  - [Performance](#performance)
+  - [Debugging](#debugging)
+  - [Data Migration & Content Operations](#data-migration--content-operations)
+  - [Common Gotchas (High Interview Value)](#common-gotchas-high-interview-value)
+- [Product Catalog Scenario — Child Resource, Custom Serializer, Replication & Notification](#product-catalog-scenario--child-resource-custom-serializer-replication--notification)
+  - [@ChildResource Pattern](#childresource-pattern)
+  - [Custom Jackson Serializer Pattern](#custom-jackson-serializer-pattern)
+  - [Programmatic Replication Trigger (Event Listener)](#programmatic-replication-trigger-event-listener)
+  - [Workflow Replication + Notification Two-Step Pattern](#workflow-replication--notification-two-step-pattern)
+  - [Concepts Clarified Alongside This Scenario](#concepts-clarified-alongside-this-scenario)
+- [REST APIs & GraphQL in AEM](#rest-apis--graphql-in-aem)
+  - [REST — Multiple Layers, Not One API](#rest--multiple-layers-not-one-api)
+  - [GraphQL — Headless Content Fragment Delivery ONLY](#graphql--headless-content-fragment-delivery-only)
+- [Oak & JCR Internals, TarMK, MongoMK](#oak--jcr-internals-tarmk-mongomk)
+  - [JCR vs Oak](#jcr-vs-oak)
+  - [Oak's Core Architecture — the NodeStore abstraction](#oaks-core-architecture--the-nodestore-abstraction)
+  - [MVCC — Concurrency Without Locking](#mvcc--concurrency-without-locking)
+  - [TarMK (Segment Node Store)](#tarmk-segment-node-store)
+  - [MongoMK (Document Node Store)](#mongomk-document-node-store)
+  - [Oak Indexing](#oak-indexing)
+  - [Common Interview Questions — Oak/JCR](#common-interview-questions--oakjcr)
+  - [Layman terms Explanation](#layman-terms-explanation)
+- [Sling Request Processing Pipeline](#sling-request-processing-pipeline)
+  - [Two design facts worth knowing well:](#two-design-facts-worth-knowing-well)
+- [Custom Widget, Content Fragment & Adobe Launch — Applied Scenario](#custom-widget-content-fragment--adobe-launch--applied-scenario)
+  - [Granite UI Custom Widget — Property Condition Rating](#granite-ui-custom-widget--property-condition-rating)
+  - [Content Fragment API — Neighborhood Guide Reference](#content-fragment-api--neighborhood-guide-reference)
+  - [Adobe Launch / Client Context](#adobe-launch--client-context)
+- [CSRF Token Handling](#csrf-token-handling)
+  - [The attack in one sentence](#the-attack-in-one-sentence)
+  - [The fix in one sentence](#the-fix-in-one-sentence)
+  - [What to use in practice](#what-to-use-in-practice)
+  - [What NOT to do](#what-not-to-do)
+  - [Common interview Q&A](#common-interview-qa)
+- [XSS Protection — XSSAPI](#xss-protection--xssapi)
+  - [Core concept: context-specific escaping](#core-concept-context-specific-escaping)
+  - [The JS string context explained](#the-js-string-context-explained)
+  - [The </script> injection corner case](#the-script-injection-corner-case)
+  - [URL context — two-step mandatory](#url-context--two-step-mandatory)
+  - [Common interview Q&A](#common-interview-qa-1)
+- [Thread Dumps — Senior Interview Reference](#thread-dumps--senior-interview-reference)
+  - [How to take one](#how-to-take-one)
+  - [Thread states cheat sheet](#thread-states-cheat-sheet)
+  - [Interview analysis checklist](#interview-analysis-checklist)
+- [Heap Dumps — Senior Interview Reference](#heap-dumps--senior-interview-reference)
+  - [When to take one](#when-to-take-one)
+  - [Eclipse MAT analysis flow](#eclipse-mat-analysis-flow)
+  - [AEM-specific things to look for in Histogram](#aem-specific-things-to-look-for-in-histogram)
+- [CIF GraphQL Caching](#cif-graphql-caching)
+  - [Architecture](#architecture)
+  - [Cache key](#cache-key)
+  - [OSGi config (factory — one per commerce endpoint)](#osgi-config-factory--one-per-commerce-endpoint)
+  - [Viewing cache stats](#viewing-cache-stats)
+  - [Clearing the cache](#clearing-the-cache)
+- [Lucene & Oak Search — Complete Reference](#lucene--oak-search--complete-reference)
+  - [Layman: What Lucene Is](#layman-what-lucene-is)
+  - [The Inverted Index Structure — In Detail](#the-inverted-index-structure--in-detail)
+  - [The Indexing Pipeline — How Content Gets INTO the Index](#the-indexing-pipeline--how-content-gets-into-the-index)
+  - [Asynchronous Indexing — The Most Important Operational Fact](#asynchronous-indexing--the-most-important-operational-fact)
+  - [Why Searching a Huge Index Isn't Slow — The Three Clarifications](#why-searching-a-huge-index-isnt-slow--the-three-clarifications)
+  - [Four Oak Index Types](#four-oak-index-types)
+  - [OOTB Indexes](#ootb-indexes)
+  - [When to Create a Custom Index](#when-to-create-a-custom-index)
+  - [Custom Index Definition — Full Example](#custom-index-definition--full-example)
+  - [Index property flags explained](#index-property-flags-explained)
+  - [After deploying: trigger reindexing](#after-deploying-trigger-reindexing)
+  - [Verify the index is being used](#verify-the-index-is-being-used)
+  - [Analyzers — How Text Is Processed](#analyzers--how-text-is-processed)
+  - [Stemming — What It Is and Why It Matters](#stemming--what-it-is-and-why-it-matters)
+  - [Partial Word Search (Wildcards)](#partial-word-search-wildcards)
+  - [Fuzzy Search](#fuzzy-search)
+  - [Relevance Scoring (TF-IDF)](#relevance-scoring-tf-idf)
+  - [Faceted Search](#faceted-search)
+  - [Full End-to-End Search Flow (How Everything Connects)](#full-end-to-end-search-flow-how-everything-connects)
+  - [Summary Cheat Sheet](#summary-cheat-sheet)
+  - [Common Interview Questions — Lucene & Search](#common-interview-questions--lucene--search)
+- [AEM Maven Plugins Reference](#aem-maven-plugins-reference)
+  - [Concept — Dependencies vs Plugins](#concept--dependencies-vs-plugins)
+  - [maven-compiler-plugin](#maven-compiler-plugin)
+  - [maven-bundle-plugin (or bnd-maven-plugin)](#maven-bundle-plugin-or-bnd-maven-plugin)
+  - [filevault-package-maven-plugin (formerly content-package-maven-plugin)](#filevault-package-maven-plugin-formerly-content-package-maven-plugin)
+  - [maven-resources-plugin](#maven-resources-plugin)
+  - [maven-jar-plugin](#maven-jar-plugin)
+  - [maven-surefire-plugin](#maven-surefire-plugin)
+  - [maven-failsafe-plugin](#maven-failsafe-plugin)
+  - [sling-maven-plugin](#sling-maven-plugin)
+  - [jacoco-maven-plugin](#jacoco-maven-plugin)
+  - [Full Lifecycle Walkthrough — What `mvn clean install -PautoInstallPackage` Actually Does](#full-lifecycle-walkthrough--what-mvn-clean-install--pautoinstallpackage-actually-does)
+  - [Quick Reference Table](#quick-reference-table)
 
 ---
 
-## 1. Sling Models
+## Sling Models
 
 ### Best Practice: Interface + Implementation
 
@@ -174,7 +384,7 @@ assertEquals("Sibi", model.getFirstName());
 
 ---
 
-## 2. OSGi Service Registry
+## OSGi Service Registry
 
 ### How Multiple Implementations of a Service Are Resolved
 
@@ -305,7 +515,7 @@ A fragment bundle attaches to a host bundle and contributes its classpath. Used 
 
 ---
 
-## 3. OSGi Configuration Registry
+## OSGi Configuration Registry
 
 This section covers how to manage multiple factory instances of a service (e.g. one reCAPTCHA config per site) and the two lifecycle patterns for maintaining a runtime registry of those instances.
 
@@ -428,7 +638,7 @@ A singleton config (`@Designate(factory=false)`, the default) allows exactly one
 
 ---
 
-## 4. Sling Servlets
+## Sling Servlets
 
 ### serialVersionUID
 
@@ -547,7 +757,7 @@ Yes — using `RequestDispatcher.include()` or `RequestDispatcher.forward()`. Th
 
 ---
 
-## 5. Sling Jobs
+## Sling Jobs
 
 ### Why Sling Jobs Instead of Plain Schedulers?
 
@@ -705,7 +915,7 @@ Sling Jobs are cluster-aware by design — the job queue distributes to one node
 
 ---
 
-## 6. Sling Event Handlers & Resource Listeners
+## Sling Event Handlers & Resource Listeners
 
 ### When to Use Which
 
@@ -776,7 +986,7 @@ JobConsumer.process(job)              ← heavy work here, with automatic retry
 
 ---
 
-## 7. Cluster-Aware Listeners
+## Cluster-Aware Listeners
 
 ### The Problem
 
@@ -878,7 +1088,7 @@ public void onChange(List<ResourceChange> changes) {
 
 ---
 
-## 8. Sling Filters
+## Sling Filters
 
 ### What Is a Sling Filter?
 
@@ -1040,7 +1250,7 @@ Push an OSGi config that sets `sling.filter.scope` to an invalid value (e.g. `di
 
 ---
 
-## 9. Request Flow — Browser → CDN → Dispatcher → AEM
+## Request Flow — Browser → CDN → Dispatcher → AEM
 
 ### Full Request Lifecycle
 
@@ -1128,7 +1338,7 @@ Your filter therefore fires on the **first request after every publish event**, 
 
 ---
 
-## 10. AEM Workflows
+## AEM Workflows
 
 ### Engine Architecture
 
@@ -1294,7 +1504,7 @@ Launchers are the event listeners that bridge the JCR and the Workflow Engine �
 
 ---
 
-## 11. JCR & Oak — Repository Fundamentals
+## JCR & Oak — Repository Fundamentals
 
 ### JCR Node Types You Must Know
 
@@ -1373,7 +1583,7 @@ It's a standard JCR mixin property (`mix:lastModified`) that records which user 
 
 ---
 
-## 12. QueryBuilder & Search
+## QueryBuilder & Search
 
 ### QueryBuilder vs JCR-SQL2 vs XPath
 
@@ -1468,7 +1678,7 @@ Mock `QueryBuilder` and `SearchResult` with Mockito, or use the `ResourceResolve
 
 This guide covers the core mechanics of AEM search, Apache Oak indexing, Lucene scoring, and the architectural principles behind faceted search. It bridges the gap between high-level concepts (layman's terms) and deep-dive technical architecture.
 
-#### 1. Lucene Relevance Scoring (TF-IDF)
+#### Lucene Relevance Scoring (TF-IDF)
 
 When AEM executes a full-text search, the underlying engine (Lucene) uses a mathematical formula to rank the results. The most common algorithm is **TF-IDF**.
 
@@ -1490,7 +1700,7 @@ A document is considered highly relevant if the search term appears in it *frequ
 
 **Interview Tip:** To debug these scores in AEM, use the **Query Builder Debugger** (`/libs/cq/search/content/querydebug.html`), execute a query, and check "Extract explain plan" to see the exact math Lucene applied.
 
-#### 2. Faceted Search (The "Smart Filters")
+#### Faceted Search (The "Smart Filters")
 
 ##### The Layman's Explanation
 
@@ -1524,7 +1734,7 @@ A faceted query returns two main blocks of data:
 
 * **`facets`:** A dictionary object containing the categories and their exact counts. The frontend uses this object to render the sidebar UI.
 
-#### 3. Under the Hood: Dynamic Recalculation & Performance
+#### Under the Hood: Dynamic Recalculation & Performance
 
 ##### How Facets Calculate Dynamically
 
@@ -1544,7 +1754,7 @@ AEM cannot show a count for a node a user isn't allowed to see.
 
 * **The Fix (AEM as a Cloud Service):** Search is offloaded entirely to Elasticsearch, which handles these aggregations natively off the AEM JVM.
 
-#### 4. The Oak Query Planner
+#### The Oak Query Planner
 
 The Query Planner is AEM's "Auctioneer." It ensures queries execute efficiently by avoiding repository traversal.
 
@@ -1562,7 +1772,7 @@ The Query Planner is AEM's "Auctioneer." It ensures queries execute efficiently 
 
 If you query an unindexed property, no custom index can bid on it. The planner is forced to use a basic Node Type index (or the root path), which bids a massive cost (e.g., 100,000). AEM must now manually traverse every node to check the property, causing a `TraversalWarning` and severe performance degradation.
 
-#### 5. Advanced Indexing: Memory and Cardinality
+#### Advanced Indexing: Memory and Cardinality
 
 You can create a custom index covering multiple properties with `facets=true`. However, you must deeply understand how this impacts server RAM.
 
@@ -1587,7 +1797,7 @@ To save space, Lucene doesn't store heavy text strings directly in the spreadshe
 **Interview Takeaway:** Setting `facets=true` on high-cardinality, free-text properties will bloat the JVM heap and eventually cause `OutOfMemoryError` (OOM) crashes in AEM 6.5. Facets should strictly be used for categorical, low-cardinality data.
 ---
 
-## 13. Dispatcher
+## Dispatcher
 
 ### What the Dispatcher Does
 
@@ -1670,7 +1880,7 @@ Dispatcher is only deployed in front of **publish**. The author environment does
 
 ---
 
-## 14. AEM Security — Service Users & Permissions
+## AEM Security — Service Users & Permissions
 
 ### Why Service Users?
 
@@ -1762,7 +1972,7 @@ Repository Initialisation (repoinit) is a domain-specific language processed by 
 
 ---
 
-## 15. Sling Context-Aware Configuration (CAConfig)
+## Sling Context-Aware Configuration (CAConfig)
 
 ### What Is CAConfig?
 
@@ -1844,7 +2054,7 @@ A property set on a content root node (e.g. the language root `/content/mysite/e
 
 ---
 
-## 16. AEM as a Cloud Service — Key Differences from 6.5
+## AEM as a Cloud Service — Key Differences from 6.5
 
 ### Architecture Changes
 
@@ -1910,7 +2120,7 @@ RDE is a fast-feedback cloud environment where you can deploy individual bundles
 
 ---
 
-## 17. Unit Testing in AEM
+## Unit Testing in AEM
 
 ### Testing Stack
 
@@ -2027,7 +2237,7 @@ Register a mock implementation with `ctx.registerService(MyService.class, mockIm
 
 ---
 
-## 18. AEM Component Development & HTL
+## AEM Component Development & HTL
 
 ### HTL (Sightly) Essentials
 
@@ -2127,7 +2337,7 @@ A policy is a reusable set of component design settings stored in `/conf`. Multi
 
 ---
 
-## 19. TagManager & Taxonomy
+## TagManager & Taxonomy
 
 ### Core APIs
 
@@ -2174,7 +2384,7 @@ Example: `mysite:topic/performance` means:
 **Q: How are tags stored on a page?**  
 As a `String[]` property `cq:tags` on the `jcr:content` node. Each value is a tag ID string (e.g. `mysite:topic/aem`).
 
-**Q: How do you get a human-readable tag title from a tag ID in a Sling Model?**  
+**Q: How do you get a human-readable tag title from a tag ID in a Sling Model?**
 ```java
 TagManager tm = resourceResolver.adaptTo(TagManager.class);
 Tag tag = tm.resolve("mysite:topic/aem");
@@ -2186,7 +2396,7 @@ String title = tag != null ? tag.getTitle(request.getLocale()) : "mysite:topic/a
 
 ---
 
-## 20. Replication API
+## Replication API
 
 ### Programmatic Page Activation
 
@@ -2252,7 +2462,7 @@ A replication agent is an OSGi-managed transport queue stored at `/etc/replicati
 
 ---
 
-## 21. Common Interview Questions — Senior Level
+## Common Interview Questions — Senior Level
 
 This section covers questions that appear frequently at the senior/lead AEM developer level, spanning multiple topics.
 
@@ -2399,7 +2609,7 @@ Using `@ context='html'` on a value that came from user input is an XSS vulnerab
 
 ---
 
-## 22. Product Catalog Scenario — Child Resource, Custom Serializer, Replication & Notification
+## Product Catalog Scenario — Child Resource, Custom Serializer, Replication & Notification
 
 These four patterns were identified as gaps in a code review and added together via one connected scenario: an e-commerce product page with auto-publish and an approval workflow.
 
@@ -2474,7 +2684,7 @@ No. If the actual business action (publishing) already succeeded, a notification
 
 ---
 
-## 23. REST APIs & GraphQL in AEM
+## REST APIs & GraphQL in AEM
 
 ### REST — Multiple Layers, Not One API
 
@@ -2539,7 +2749,7 @@ REST for arbitrary resources, writes, or quick exposure of existing Sling Models
 
 ---
 
-## 24. Oak & JCR Internals, TarMK, MongoMK
+## Oak & JCR Internals, TarMK, MongoMK
 
 ### JCR vs Oak
 
@@ -2628,7 +2838,7 @@ Finally — a brand-new book on the shelf gets an instant index card filed the s
 
 ---
 
-## 25. Sling Request Processing Pipeline
+## Sling Request Processing Pipeline
 
 This is the internal request lifecycle inside AEM/Sling — distinct from the earlier Browser→CDN→Dispatcher flow, which is what happens before the request even reaches this pipeline.
 
@@ -2674,11 +2884,11 @@ HTTP request arrives at the Sling Engine (on Jetty/Felix HTTP Whiteboard)
 ```
 
 ### Two design facts worth knowing well:
-Resources, not JCR nodes, are the real abstraction. Sling doesn't hard-wire itself to JCR. It talks to a `ResourceProvider` SPI — JCR is just one provider (`JcrResourceProvider`). Other providers can mount virtual resources from anywhere (an external API, a config map, OSGi bundle resources) into the same resource tree at a chosen mount point. 
+Resources, not JCR nodes, are the real abstraction. Sling doesn't hard-wire itself to JCR. It talks to a `ResourceProvider` SPI — JCR is just one provider (`JcrResourceProvider`). Other providers can mount virtual resources from anywhere (an external API, a config map, OSGi bundle resources) into the same resource tree at a chosen mount point.
 This is why the same Sling Model/HTL code can render content regardless of whether it actually came from JCR — the rest of the stack only ever talks to "Resources," never to raw JCR.
 The /apps over /libs overlay mechanism (Resource Merger) is how customisations of Adobe's out-of-the-box components work without ever touching /libs directly: Sling's script/servlet resolution checks /apps first, falls back to /libs if nothing's there, and the Resource Merger can even merge node properties from both locations (not just whole resources) for partial overlay scenarios — this underlies the well-known "never modify /libs, always override in /apps" rule.
 
-## 26. Custom Widget, Content Fragment & Adobe Launch — Applied Scenario
+## Custom Widget, Content Fragment & Adobe Launch — Applied Scenario
 
 One connected scenario across all three previously-missing topics: extending a Property Listing component with (12) a custom star-rating dialog widget, (13) a Content Fragment reference, and (14) Adobe Launch tracking.
 
@@ -2749,7 +2959,7 @@ Single source of truth — the Java model is the only place that decides what th
 
 ---
 
-## 26. CSRF Token Handling
+## CSRF Token Handling
 
 ### The attack in one sentence
 A malicious website makes your browser silently POST to AEM using your session cookie — because browsers attach cookies automatically to every matching-domain request, AEM can't tell the forged request from a real one.
@@ -2790,7 +3000,7 @@ It can SEND the request but cannot READ the response — Same-Origin Policy bloc
 
 ---
 
-## 27. XSS Protection — XSSAPI
+## XSS Protection — XSSAPI
 
 ### Core concept: context-specific escaping
 
@@ -2861,7 +3071,7 @@ It's incomplete — `encodeForHTML` doesn't block `javascript:` protocol. `filte
 
 ---
 
-## 28. Thread Dumps — Senior Interview Reference
+## Thread Dumps — Senior Interview Reference
 
 ### How to take one
 ```bash
@@ -2897,7 +3107,7 @@ The scheduler is holding a JVM monitor lock while blocked on a slow external HTT
 
 ---
 
-## 29. Heap Dumps — Senior Interview Reference
+## Heap Dumps — Senior Interview Reference
 
 ### When to take one
 - OutOfMemoryError (configure `-XX:+HeapDumpOnOutOfMemoryError` in advance)
@@ -2933,7 +3143,7 @@ It traces the reference chain from a suspicious object all the way back to a GC 
 
 ---
 
-## 30. CIF GraphQL Caching
+## CIF GraphQL Caching
 
 ### Architecture
 CIF caches GraphQL responses **in-process inside the AEM JVM** (Guava Cache), not in Dispatcher — because GraphQL POST requests have no stable URL to cache against at the HTTP layer.
@@ -2988,7 +3198,7 @@ Functionally the same pattern — both are Guava Caches with `maximumSize` + `ex
 
 ---
 
-## 31. Lucene & Oak Search — Complete Reference
+## Lucene & Oak Search — Complete Reference
 
 ### Layman: What Lucene Is
 
@@ -3452,13 +3662,13 @@ Set `reindex=Boolean(true)` on the index node in CRXDE. Oak detects this, reinde
 
 ---------
 
-## 32. AEM Maven Plugins Reference
+## AEM Maven Plugins Reference
 
 **Purpose:** A senior-level reference for the Maven plugins found in a typical AEM multi-module project (`core`, `ui.apps`/`all`, `ui.content`, `ui.config`), covering what each plugin actually does, key configuration, and common misconfiguration symptoms — the kind of detail interviewers probe for beyond "I just add dependencies."
 
 ---
 
-### 1. Concept — Dependencies vs Plugins
+### Concept — Dependencies vs Plugins
 
 Before the individual plugins: it's worth being explicit about *why* this distinction matters, since it's the root of the "I only touch dependencies" gap.
 
@@ -3469,12 +3679,12 @@ Every `mvn` command (`compile`, `test`, `package`, `verify`, `install`, `deploy`
 
 ---
 
-### 2. maven-compiler-plugin
+### maven-compiler-plugin
 
-#### 2.1 What it does
+#### What it does
 Compiles your `.java` source files into `.class` bytecode. Bound to the `compile` phase (and `test-compile` for test sources).
 
-#### 2.2 Key configuration
+#### Key configuration
 
 ```xml
 <plugin>
@@ -3489,12 +3699,12 @@ Compiles your `.java` source files into `.class` bytecode. Bound to the `compile
 </plugin>
 ```
 
-#### 2.3 Technicalities
+#### Technicalities
 - `<release>` (Java 9+) is preferred over separate `<source>`/`<target>` — it also constrains which JDK *APIs* are available, not just language syntax, preventing accidental use of a newer API method against an older declared target.
 - AEM as a Cloud Service currently targets Java 11 (with Java 17 support introduced more recently) — a mismatch between this plugin's configured version and the JDK actually used by your CI/Cloud Manager pipeline is a classic "works locally, fails in pipeline" cause.
 - Compiler warnings-as-errors (`<compilerArgument>-Werror</compilerArgument>`) is a stricter option some teams enable — worth knowing whether your project has this on, since it changes how seriously to treat warnings during development.
 
-#### 2.4 Common misconfig symptoms
+#### Common misconfig symptoms
 | Symptom | Likely cause |
 |---|---|
 | `UnsupportedClassVersionError` at runtime on AEM | Compiled with a newer Java version than the AEM instance/Cloud Service runtime supports |
@@ -3502,12 +3712,12 @@ Compiles your `.java` source files into `.class` bytecode. Bound to the `compile
 
 ---
 
-### 3. maven-bundle-plugin (or bnd-maven-plugin)
+### maven-bundle-plugin (or bnd-maven-plugin)
 
-#### 3.1 What it does
+#### What it does
 This is the plugin that makes AEM development "OSGi development." It takes your compiled classes and generates the OSGi `MANIFEST.MF` — specifically `Bundle-SymbolicName`, `Import-Package`, `Export-Package`, and `Bundle-Version` — turning a plain JAR into a valid OSGi bundle that AEM's Felix container can load, resolve, and activate.
 
-#### 3.2 Key configuration
+#### Key configuration
 
 ```xml
 <plugin>
@@ -3527,13 +3737,13 @@ This is the plugin that makes AEM development "OSGi development." It takes your 
 
 Many current AEM archetypes instead use the newer **bnd-maven-plugin** (`biz.aQute.bnd:bnd-maven-plugin`) with a separate `bnd.bnd` file or inline `<bnd>` block — functionally the same purpose, different tooling generation. Know which one your project uses; the config *syntax* differs even though the *goal* (generate a correct OSGi manifest) is identical.
 
-#### 3.3 Technicalities
+#### Technicalities
 - **`Import-Package` vs `Export-Package` is the single most important concept here.** `Export-Package` declares which of *your own* packages other bundles may use. `Import-Package` declares which *external* packages your bundle needs, and (critically) at what version range. Getting this wrong is the #1 cause of `"Unresolved constraint... package uses conflict"` errors when deploying to AEM.
 - `Import-Package: *` (wildcard, auto-detected by BND analyzing your bytecode) is convenient but can silently import packages you didn't intend to depend on, or miss ones used only via reflection — reflection-based dependencies (Class.forName, dynamic proxies) are invisible to BND's static bytecode analysis and often need to be declared explicitly.
 - `Sling-Model-Packages` tells Sling Models' bundle-scanning where to look for `@Model`-annotated classes at runtime — omitting a package here means your Sling Models simply never get registered, with no obvious error message pointing at this specific cause.
 - **Package versioning ranges** — BND auto-generates version ranges for imported packages based on the exporting bundle's version at build time (e.g., `[1.2,2)`). If a dependency bundle is later upgraded on the AEM instance to a version outside that range, your bundle fails to resolve — a frequent "worked yesterday, broken today after a platform update" bug.
 
-#### 3.4 Common misconfig symptoms
+#### Common misconfig symptoms
 | Symptom | Likely cause |
 |---|---|
 | Bundle shows "Installed" but not "Active" in Felix Console | Unresolved package import — check the bundle's "Resolution failed" details |
@@ -3543,12 +3753,12 @@ Many current AEM archetypes instead use the newer **bnd-maven-plugin** (`biz.aQu
 
 ---
 
-### 4. filevault-package-maven-plugin (formerly content-package-maven-plugin)
+### filevault-package-maven-plugin (formerly content-package-maven-plugin)
 
-#### 4.1 What it does
+#### What it does
 Builds the content package `.zip` (for `ui.apps`, `ui.content`, `all`) from your `jcr_root` directory structure and `filter.xml` — this is what actually installs pages, components, configs, and design content into the JCR repository when deployed, as distinct from the bundle plugin's job of installing *code*.
 
-#### 4.2 Key configuration
+#### Key configuration
 
 ```xml
 <plugin>
@@ -3564,13 +3774,13 @@ Builds the content package `.zip` (for `ui.apps`, `ui.content`, `all`) from your
 </plugin>
 ```
 
-#### 4.3 Technicalities
+#### Technicalities
 - **`filter.xml` defines the "workspace filter" — the set of JCR paths this package owns and will overwrite on install.** This is the single highest-stakes piece of AEM Maven config: a filter root that's too broad (e.g., `/content` instead of `/content/properties`) can wipe out unrelated content on deploy; a filter root missing an intended path means your content silently doesn't deploy at all.
 - `<packageType>` matters for AEM as a Cloud Service specifically — Cloud Manager's pipeline validates that `application` packages (code, OSGi configs, `ui.apps`) and `content` packages (`ui.content`) are correctly separated; mixing them (e.g., putting mutable author content inside an `application`-typed package) is flagged and can fail the Cloud Manager readiness check.
 - Filter rules support `mode="merge"`/`mode="replace"` (and `include`/`exclude` sub-rules) — `replace` (the default) wipes and replaces everything under that root; `merge` only adds/updates what's in the package without deleting siblings not present in the package. Using `replace` on a shared root that other packages or authors also write to is a common way to accidentally delete author-created content on the next deploy.
 - The `all` package typically embeds `core` (the bundle) and `ui.apps`/`ui.content` as sub-packages via `<embeddeds>`/dependency-based packaging — this is why deploying `all` installs everything in one shot, and why a broken filter in a sub-package still breaks the aggregate `all` deployment.
 
-#### 4.4 Common misconfig symptoms
+#### Common misconfig symptoms
 | Symptom | Likely cause |
 |---|---|
 | Author-created content disappears after a code deploy | Overly broad filter root using `replace` mode covering author-editable content |
@@ -3579,16 +3789,16 @@ Builds the content package `.zip` (for `ui.apps`, `ui.content`, `all`) from your
 
 ---
 
-### 5. maven-resources-plugin
+### maven-resources-plugin
 
-#### 5.1 What it does
+#### What it does
 Copies non-Java resource files (`.content.xml`, properties files, OSGi config JSON/CFM files under `src/main/resources`) into the build output directory, so they end up correctly placed in the packaged bundle.
 
-#### 5.2 Technicalities
+#### Technicalities
 - Runs in the `process-resources` phase, **before** `compile` — resource filtering (variable substitution like `${project.version}` inside a resource file) happens here if `<filtering>true</filtering>` is configured on the resource directory.
 - A resource "not showing up" after build is very often not a bug in this plugin but a wrong `<resource>`/`<directory>` path in the `<build><resources>` block, or the file simply not being under a recognized resource root.
 
-#### 5.3 Common misconfig symptoms
+#### Common misconfig symptoms
 | Symptom | Likely cause |
 |---|---|
 | OSGi config file present in source but missing from deployed bundle | Not under a configured `<resources>` directory, or excluded by a resource filter pattern |
@@ -3596,23 +3806,23 @@ Copies non-Java resource files (`.content.xml`, properties files, OSGi config JS
 
 ---
 
-### 6. maven-jar-plugin
+### maven-jar-plugin
 
-#### 6.1 What it does
+#### What it does
 Packages compiled classes + resources into a plain `.jar`, which the bundle plugin (Section 3) then post-processes to inject the OSGi manifest. Bound to the `package` phase.
 
-#### 6.2 Technicalities
+#### Technicalities
 - Usually invisible/default-configured in AEM projects — you'd only touch this directly to customize manifest entries not covered by the bundle plugin, or to exclude specific files from the final JAR (`<excludes>`).
 - If you ever see manifest entries that look like plain-JAR defaults (no `Import-Package`/`Export-Package`) rather than OSGi-flavored ones, it usually means the bundle plugin isn't correctly configured with `<extensions>true</extensions>`, so this plugin's plain output is what actually got deployed.
 
 ---
 
-### 7. maven-surefire-plugin
+### maven-surefire-plugin
 
-#### 7.1 What it does
+#### What it does
 Runs unit tests (anything matching `**/*Test.java` by default) during the `test` phase — this is the plugin actually executing your JUnit/Mockito/AemContext test suite from Phases 6–9.
 
-#### 7.2 Key configuration
+#### Key configuration
 
 ```xml
 <plugin>
@@ -3627,12 +3837,12 @@ Runs unit tests (anything matching `**/*Test.java` by default) during the `test`
 </plugin>
 ```
 
-#### 7.3 Technicalities
+#### Technicalities
 - `mvn package`/`mvn install` runs tests by default (via the `test` phase preceding `package` in the lifecycle) — `-DskipTests` skips execution but still compiles test classes; `-Dmaven.test.skip=true` skips both compiling and running, which is a meaningfully different (faster, but riskier) skip.
 - Surefire and JaCoCo interact through the `argLine` property — JaCoCo's `prepare-agent` goal injects a `-javaagent` flag into the same `argLine` surefire uses to launch the test JVM; if your `pom.xml` manually overrides `<argLine>` elsewhere without including `@{argLine}` (the JaCoCo-populated placeholder), you silently lose coverage instrumentation with no error — a subtle, easy-to-miss interaction.
 - Test JVM forking (`forkCount`) affects both speed and isolation — a shared/reused fork across many test classes can leak static state (relevant to the `MockedStatic` cleanup discipline from Phase 9.3) between test classes if not closed properly, though this is much rarer than same-class leakage.
 
-#### 7.4 Common misconfig symptoms
+#### Common misconfig symptoms
 | Symptom | Likely cause |
 |---|---|
 | JaCoCo report shows 0% coverage despite tests passing | Custom `<argLine>` override doesn't include `@{argLine}`, dropping the JaCoCo agent |
@@ -3641,23 +3851,23 @@ Runs unit tests (anything matching `**/*Test.java` by default) during the `test`
 
 ---
 
-### 8. maven-failsafe-plugin
+### maven-failsafe-plugin
 
-#### 8.1 What it does
+#### What it does
 Runs *integration* tests (conventionally `**/*IT.java`), bound to the `integration-test`/`verify` phases — distinct from surefire's unit tests, which run earlier in the `test` phase. The separation exists because integration tests often need a running environment (a deployed AEM instance, external service) that shouldn't block a fast local `mvn test`.
 
-#### 8.2 Technicalities
+#### Technicalities
 - Failsafe deliberately runs `integration-test` (execute) and `verify` (check results) as **two separate goal bindings**, so that post-integration-test cleanup (tearing down a test environment) can run even if a test failed — this is why failsafe exists as a distinct plugin from surefire rather than surefire simply also handling `*IT.java` files.
 - Most AEM projects don't have integration tests configured by default from the archetype — if your project has none, this plugin may not even be present in your `pom.xml`, which is normal, not a gap.
 
 ---
 
-### 9. sling-maven-plugin
+### sling-maven-plugin
 
-#### 9.1 What it does
+#### What it does
 Installs/deploys the built package or bundle directly to a running AEM instance — this is the plugin actually invoked by the common `-PautoInstallPackage` / `-PautoInstallBundle` Maven profiles used during local development.
 
-#### 9.2 Key configuration (typically inside a profile, not the default build)
+#### Key configuration (typically inside a profile, not the default build)
 
 ```xml
 <profile>
@@ -3683,12 +3893,12 @@ Installs/deploys the built package or bundle directly to a running AEM instance 
 </profile>
 ```
 
-#### 9.3 Technicalities
+#### Technicalities
 - The `-P` flag activates a Maven **profile** — `-PautoInstallPackage` and `-PautoInstallBundle` are conventionally defined profiles in AEM archetypes that add this plugin's execution to the build only when explicitly requested, which is why a plain `mvn clean install` (no profile flag) doesn't attempt to touch a running AEM instance.
 - `autoInstallBundle` deploys just the OSGi bundle (fast, for quick backend iteration); `autoInstallPackage` deploys the full content package (slower, includes content/config changes) — knowing which one to reach for materially affects local dev iteration speed.
 - This plugin is irrelevant to Cloud Manager pipeline deployments — Cloud Manager uses its own deployment orchestration reading the built artifacts, not `sling-maven-plugin` against a live URL; this plugin is strictly a local/on-prem development convenience.
 
-#### 9.4 Common misconfig symptoms
+#### Common misconfig symptoms
 | Symptom | Likely cause |
 |---|---|
 | `mvn clean install -PautoInstallPackage` succeeds but nothing changes on the instance | Wrong `slingUrl` port/host, or instance not actually running |
@@ -3696,7 +3906,7 @@ Installs/deploys the built package or bundle directly to a running AEM instance 
 
 ---
 
-### 10. jacoco-maven-plugin
+### jacoco-maven-plugin
 
 Covered in full detail in Phase 10 of the JUnit testing guide — summarized here for completeness:
 
@@ -3707,7 +3917,7 @@ Covered in full detail in Phase 10 of the JUnit testing guide — summarized her
 
 ---
 
-### 11. Full Lifecycle Walkthrough — What `mvn clean install -PautoInstallPackage` Actually Does
+### Full Lifecycle Walkthrough — What `mvn clean install -PautoInstallPackage` Actually Does
 
 Useful as a single mental model tying every plugin above together, in the order things actually happen:
 
@@ -3724,7 +3934,7 @@ Useful as a single mental model tying every plugin above together, in the order 
 
 ---
 
-### 12. Quick Reference Table
+### Quick Reference Table
 
 | Plugin | Phase it binds to | What breaks without it | Local-dev only? |
 |---|---|---|---|
